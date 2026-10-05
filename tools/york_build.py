@@ -25,8 +25,12 @@ def build_environment(source, use_conan=False):
     for name in ("CUDACXX", "AER_CUDA_ARCH", "AER_PYTHON_CUDA_ROOT", "QISKIT_AER_CUDA_MAJOR"):
         environment.pop(name, None)
     # Append explicit CPU selection after caller-supplied platform/toolchain options.
-    environment["CMAKE_ARGS"] = (
-        environment.get("CMAKE_ARGS", "")
+    # scikit-build 0.18's legacy CMAKE_ARGS reader also uses plain .split(), which
+    # breaks quoted paths/flags. Its newer option is parsed once with shlex.
+    environment["SKBUILD_CONFIGURE_OPTIONS"] = (
+        environment.pop("CMAKE_ARGS", "")
+        + " "
+        + environment.get("SKBUILD_CONFIGURE_OPTIONS", "")
         + f" -DDISABLE_CONAN={'OFF' if use_conan else 'ON'}"
         + " -DAER_THRUST_BACKEND:STRING= -DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
     ).strip()

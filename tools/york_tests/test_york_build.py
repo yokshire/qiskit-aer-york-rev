@@ -4,6 +4,7 @@
 import importlib.util
 import os
 from pathlib import Path
+import shlex
 import unittest
 from unittest.mock import patch
 
@@ -34,12 +35,26 @@ class YorkBuildTests(unittest.TestCase):
         self.assertEqual(environment["AER_THRUST_BACKEND"], "")
         for name in ("CUDACXX", "AER_CUDA_ARCH", "AER_PYTHON_CUDA_ROOT"):
             self.assertNotIn(name, environment)
-        self.assertIn("-DCMAKE_TOOLCHAIN_FILE=custom.cmake", environment["CMAKE_ARGS"])
+        self.assertNotIn("CMAKE_ARGS", environment)
+        options = environment["SKBUILD_CONFIGURE_OPTIONS"]
+        self.assertIn("-DCMAKE_TOOLCHAIN_FILE=custom.cmake", options)
         self.assertGreater(
-            environment["CMAKE_ARGS"].index("-DAER_THRUST_BACKEND:STRING="),
-            environment["CMAKE_ARGS"].index("-DAER_THRUST_BACKEND=CUDA"),
+            options.index("-DAER_THRUST_BACKEND:STRING="),
+            options.index("-DAER_THRUST_BACKEND=CUDA"),
         )
-        self.assertIn("-DDISABLE_CONAN=ON", environment["CMAKE_ARGS"])
+        self.assertIn("-DDISABLE_CONAN=ON", options)
+
+    def test_quoted_compiler_flags_and_paths_reach_cmake_as_single_arguments(self):
+        original = {
+            "CMAKE_ARGS": '-DOpenMP_CXX_FLAGS="-Xpreprocessor -fopenmp"',
+            "SKBUILD_CONFIGURE_OPTIONS": '-DCMAKE_TOOLCHAIN_FILE="C:/Build Tools/vcpkg.cmake"',
+        }
+        with patch.dict(os.environ, original, clear=True):
+            environment = BUILD.build_environment(Path.cwd())
+        options = shlex.split(environment["SKBUILD_CONFIGURE_OPTIONS"])
+        self.assertNotIn("CMAKE_ARGS", environment)
+        self.assertIn("-DOpenMP_CXX_FLAGS=-Xpreprocessor -fopenmp", options)
+        self.assertIn("-DCMAKE_TOOLCHAIN_FILE=C:/Build Tools/vcpkg.cmake", options)
 
     def test_native_venv_interpreter_path(self):
         directory = Path("venv")
