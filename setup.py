@@ -1,7 +1,9 @@
 # pylint: disable=invalid-name
 
 """
-Main setup file for qiskit-aer
+Main setup file for qiskit-aer.
+
+York revision: separate distribution identity and project URL.
 """
 import os
 import platform
@@ -9,7 +11,7 @@ import platform
 import setuptools
 from skbuild import setup
 
-PACKAGE_NAME = os.getenv("QISKIT_AER_PACKAGE_NAME", "qiskit-aer")
+PACKAGE_NAME = os.getenv("QISKIT_AER_PACKAGE_NAME", "qiskit-aer-york-rev")
 CUDA_MAJOR = os.getenv("QISKIT_AER_CUDA_MAJOR", "12")
 
 # Allow build without the CUDA requirements. This is useful in case one intends to use a CUDA that exists in the host system.
@@ -96,10 +98,11 @@ setup(
     version=VERSION,
     packages=setuptools.find_packages(exclude=["test*"]),
     cmake_source_dir=".",
-    description="Aer - High performance simulators for Qiskit",
+    description="Unofficial York revision of Aer for Qiskit and CUDA GPU compatibility",
     long_description=README,
     long_description_content_type="text/markdown",
-    url="https://github.com/Qiskit/qiskit-aer",
+    url="https://github.com/yokshire/qiskit-aer-york-rev",
+    project_urls={"Upstream": "https://github.com/Qiskit/qiskit-aer"},
     author="AER Development Team",
     author_email="qiskit@us.ibm.com",
     license="Apache 2.0",

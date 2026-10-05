@@ -457,7 +457,7 @@ class NoiseModel:
     @classmethod
     def from_backend_properties(
         cls,
-        backend_properties: "BackendProperties",
+        backend_properties: "BackendProperties",  # noqa: F821 - upstream legacy deferred type
         gate_error: bool = True,
         readout_error: bool = True,
         thermal_relaxation: bool = True,

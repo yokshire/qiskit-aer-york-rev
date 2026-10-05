@@ -1,3 +1,28 @@
+# Qiskit Aer York Revision
+
+[![Compatibility and review](https://github.com/yokshire/qiskit-aer-york-rev/actions/workflows/york-compatibility.yml/badge.svg)](https://github.com/yokshire/qiskit-aer-york-rev/actions/workflows/york-compatibility.yml)
+
+An **unofficial, independently maintained customization** of Qiskit Aer,
+focused on CUDA GPU packaging and compatibility with current stable Qiskit.
+It is not an IBM/Qiskit-endorsed release.
+
+- CPU distribution: `qiskit-aer-york-rev`.
+- CUDA 12 distribution: `qiskit-aer-york-rev-gpu`.
+- Python imports remain `qiskit_aer`; use a dedicated virtual environment.
+  Do not install this together with `qiskit-aer` or `qiskit-aer-gpu`.
+- No York wheel has been published to PyPI or GitHub Releases yet.
+- Automated checks are smoke/regression checks, not a claim of exhaustive
+  compatibility. A green hosted CI run does **not** prove GPU execution.
+
+See [York maintenance and automation](YORK_REVISION.md) for the schedule,
+scope, build instructions, and GPU validation limitations.
+
+## Original upstream documentation
+
+The following section is retained from Qiskit Aer for provenance. Its badges,
+installation commands, maintenance policy, and contribution links refer to
+**upstream**, not to this independent project.
+
 # Aer - high performance quantum circuit simulation for Qiskit
 
 [![License](https://img.shields.io/github/license/Qiskit/qiskit-aer.svg?style=popout-square)](https://opensource.org/licenses/Apache-2.0)

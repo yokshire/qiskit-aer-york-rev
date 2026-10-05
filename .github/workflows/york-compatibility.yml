@@ -1,0 +1,223 @@
+name: York Compatibility and Review
+
+on:
+  schedule:
+    # UTC 03:00/15:00 = Asia/Seoul 12:00/00:00. GitHub may delay scheduled runs.
+    - cron: '0 3,15 * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: york-compatibility-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  inventory:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      qiskit: ${{ steps.versions.outputs.qiskit }}
+      runtime: ${{ steps.versions.outputs.runtime }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install 'packaging>=24,<27'
+      - name: Resolve current stable releases
+        id: versions
+        run: python tools/york_ci.py inventory --output artifacts/inventory.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: york-inventory
+          path: artifacts/inventory.json
+          retention-days: 30
+
+  static-review:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install 'black==24.10.0' 'ruff==0.14.10' 'packaging>=24,<27'
+      - name: Syntax and undefined-name review
+        run: |
+          python -m compileall -q qiskit_aer tools/york_ci.py tools/york_smoke.py
+          ruff check --select E9,F63,F7,F82 qiskit_aer tools/york_ci.py tools/york_smoke.py tools/york_tests
+      - name: York tooling formatting
+        run: black --check --target-version py310 tools/york_ci.py tools/york_smoke.py tools/york_tests
+      - name: Automation regression tests
+        run: python -m unittest discover -s tools/york_tests -v
+      - name: Build-script syntax
+        run: bash -n tools/york_build.sh
+
+  cpu-compatibility:
+    needs: inventory
+    name: CPU Python ${{ matrix.python }} / stable Qiskit and Runtime
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        python: ['3.10', '3.11', '3.12', '3.13', '3.14', '3.x']
+    env:
+      OMP_NUM_THREADS: '2'
+      OPENBLAS_NUM_THREADS: '2'
+      CMAKE_BUILD_PARALLEL_LEVEL: '2'
+      QISKIT_VERSION: ${{ needs.inventory.outputs.qiskit }}
+      RUNTIME_VERSION: ${{ needs.inventory.outputs.runtime }}
+      EVIDENCE_LABEL: ${{ matrix.python }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: ${{ matrix.python }}
+          check-latest: true
+      - name: System build libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libopenblas-dev libspdlog-dev nlohmann-json3-dev libthrust-dev
+      - name: Build York CPU wheel and test installed package
+        run: bash tools/york_build.sh cpu "$QISKIT_VERSION" "$RUNTIME_VERSION" "$EVIDENCE_LABEL"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: york-cpu-${{ matrix.python }}
+          path: |
+            artifacts/smoke-*.json
+            artifacts/cpu-wheel.json
+            artifacts/installed-versions.txt
+          if-no-files-found: warn
+          retention-days: 30
+
+  cuda-wheel:
+    needs: inventory
+    name: CUDA 12 wheel build and metadata (no GPU execution)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    container: nvidia/cuda:12.4.1-devel-ubuntu22.04
+    defaults:
+      run:
+        shell: bash
+    env:
+      QISKIT_VERSION: ${{ needs.inventory.outputs.qiskit }}
+      RUNTIME_VERSION: ${{ needs.inventory.outputs.runtime }}
+    steps:
+      - name: System build libraries
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y git ca-certificates binutils libopenblas-dev libspdlog-dev nlohmann-json3-dev
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+      - name: Build CUDA wheel and check compiler, dependencies, and ELF paths
+        run: bash tools/york_build.sh gpu "$QISKIT_VERSION" "$RUNTIME_VERSION" cuda12
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: york-cuda-wheel
+          path: |
+            artifacts/gpu-wheel.json
+            artifacts/installed-versions.txt
+          if-no-files-found: warn
+          retention-days: 30
+
+  report:
+    if: always()
+    needs: [inventory, static-review, cpu-compatibility, cuda-wheel]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install 'packaging>=24,<27'
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: york-*
+          path: artifacts
+      - name: Consolidate evidence
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: |
+          if [ -f artifacts/york-inventory/inventory.json ]; then
+            cp artifacts/york-inventory/inventory.json artifacts/inventory.json
+          fi
+          python tools/york_ci.py report --artifacts artifacts
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: compatibility-review
+          path: |
+            artifacts/review.json
+            artifacts/review.md
+          retention-days: 30
+
+  notify:
+    if: ${{ always() && github.event_name != 'pull_request' && needs.report.result == 'success' }}
+    needs: report
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      # No checkout or execution of repository code with the write-scoped token.
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: compatibility-review
+          path: review
+      - name: Maintain one failure issue without duplicate notifications
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        with:
+          script: |
+            const fs = require('fs');
+            const report = JSON.parse(fs.readFileSync('review/review.json', 'utf8'));
+            if (typeof report.passed !== 'boolean' || !/^[a-f0-9]{64}$/.test(report.fingerprint)) {
+              throw new Error('Invalid compatibility report');
+            }
+            const title = '[Automation] Compatibility review required';
+            const marker = '<!-- york-compatibility-monitor -->';
+            const stamp = `<!-- fingerprint:${report.fingerprint} -->`;
+            const runs = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const issues = await github.paginate(github.rest.issues.listForRepo, {
+              ...context.repo, state: 'open', creator: 'github-actions[bot]', per_page: 100
+            });
+            const issue = issues.find(item => !item.pull_request && item.title === title && (item.body || '').includes(marker));
+            if (report.passed) {
+              if (issue) {
+                await github.rest.issues.createComment({ ...context.repo, issue_number: issue.number,
+                  body: `CPU compatibility and CUDA packaging checks recovered: ${runs}\n\nPhysical GPU execution remains unverified by hosted CI.` });
+                await github.rest.issues.update({ ...context.repo, issue_number: issue.number, state: 'closed' });
+              }
+              return;
+            }
+            if (issue && (issue.body || '').includes(stamp)) return;
+            const body = `${marker}\n${stamp}\n${String(report.body).slice(0, 50000)}\nWorkflow run: ${runs}`;
+            if (issue) {
+              await github.rest.issues.update({ ...context.repo, issue_number: issue.number, body });
+              await github.rest.issues.createComment({ ...context.repo, issue_number: issue.number,
+                body: `The compatibility failure state or dependency versions changed. Updated report: ${runs}` });
+            } else {
+              await github.rest.issues.create({ ...context.repo, title, body });
+            }

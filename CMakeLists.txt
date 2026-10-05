@@ -10,6 +10,8 @@
 
 cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
 file(STRINGS "qiskit_aer/VERSION.txt" VERSION_NUM)
+# York revision: Python's post/dev suffix is not a valid CMake project version.
+string(REGEX MATCH "^[0-9]+\\.[0-9]+\\.[0-9]+" AER_CMAKE_VERSION "${VERSION_NUM}")
 
 # For ROCm builds we need to make sure the CXX and HIP compilers match and are clang.
 # We should do this before the project() call to make sure the compiler options are
@@ -46,7 +48,7 @@ if(AER_THRUST_BACKEND STREQUAL "CUDA")
 endif()
 
 include(CheckLanguage)
-project(qasm_simulator VERSION ${VERSION_NUM} LANGUAGES CXX C ${EXTRA_LANGUAGES} )
+project(qasm_simulator VERSION ${AER_CMAKE_VERSION} LANGUAGES CXX C ${EXTRA_LANGUAGES} )
 
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)

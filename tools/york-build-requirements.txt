@@ -1,0 +1,10 @@
+# Keep the legacy CMake FindCUDA and scikit-build toolchain reproducible.
+build>=1.2,<2
+setuptools>=75,<82
+wheel>=0.45,<1
+scikit-build>=0.18,<0.19
+cmake>=3.24,<3.30
+ninja>=1.11,<2
+pybind11>=3,<4
+conan>=1.66,<2
+packaging>=24,<27

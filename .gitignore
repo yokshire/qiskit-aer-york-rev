@@ -31,6 +31,8 @@ test/.asv
 
 .tox/
 .stestr/
+artifacts/
+.venv-york/
 
 docs/_build/
 docs/stubs/

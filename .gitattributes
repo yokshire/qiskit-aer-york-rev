@@ -1,0 +1,4 @@
+# York automation scripts must remain executable by bash after Windows edits.
+*.sh text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
