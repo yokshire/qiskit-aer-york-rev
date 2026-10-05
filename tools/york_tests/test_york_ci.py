@@ -17,18 +17,19 @@ class YorkCITests(unittest.TestCase):
     """No network, GPU, or IBM account is used by these tests."""
 
     def successful_evidence(self, directory):
-        """Create all evidence required by the six-row CPU matrix."""
+        """Create evidence for six Linux versions plus Windows and macOS."""
         path = Path(directory)
         CI.write_json(
             path / "inventory.json",
             {"packages": {name: {"version": "1.0.0"} for name in CI.PACKAGES}},
         )
-        for index in range(6):
+        for index, system in enumerate(["Linux"] * 6 + ["Windows", "Darwin"]):
             CI.write_json(
                 path / f"smoke-{index}.json",
                 {
                     "status": "passed",
                     "device": "CPU",
+                    "platform": {"system": system},
                     "versions": {name: "1.0.0" for name in ("qiskit", "qiskit-ibm-runtime")},
                 },
             )
@@ -75,7 +76,13 @@ class YorkCITests(unittest.TestCase):
     def test_report_never_claims_gpu_execution(self):
         needs = {
             name: {"result": "success"}
-            for name in ("inventory", "static-review", "cpu-compatibility", "cuda-wheel")
+            for name in (
+                "inventory",
+                "static-review",
+                "cpu-compatibility",
+                "cpu-portability",
+                "cuda-wheel",
+            )
         }
         with tempfile.TemporaryDirectory() as directory:
             self.successful_evidence(directory)
@@ -93,7 +100,13 @@ class YorkCITests(unittest.TestCase):
     def test_smoke_failure_overrides_successful_job_status(self):
         needs = {
             name: {"result": "success"}
-            for name in ("inventory", "static-review", "cpu-compatibility", "cuda-wheel")
+            for name in (
+                "inventory",
+                "static-review",
+                "cpu-compatibility",
+                "cpu-portability",
+                "cuda-wheel",
+            )
         }
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory)
@@ -104,7 +117,13 @@ class YorkCITests(unittest.TestCase):
     def test_successful_jobs_without_artifacts_are_not_a_pass(self):
         needs = {
             name: {"result": "success"}
-            for name in ("inventory", "static-review", "cpu-compatibility", "cuda-wheel")
+            for name in (
+                "inventory",
+                "static-review",
+                "cpu-compatibility",
+                "cpu-portability",
+                "cuda-wheel",
+            )
         }
         with tempfile.TemporaryDirectory() as directory:
             self.assertFalse(CI.make_report(Path(directory), needs)["passed"])
@@ -112,7 +131,13 @@ class YorkCITests(unittest.TestCase):
     def test_report_rejects_old_dependency_fallback(self):
         needs = {
             name: {"result": "success"}
-            for name in ("inventory", "static-review", "cpu-compatibility", "cuda-wheel")
+            for name in (
+                "inventory",
+                "static-review",
+                "cpu-compatibility",
+                "cpu-portability",
+                "cuda-wheel",
+            )
         }
         with tempfile.TemporaryDirectory() as directory:
             self.successful_evidence(directory)
@@ -130,6 +155,41 @@ class YorkCITests(unittest.TestCase):
             first = CI.make_report(path, {})["fingerprint"]
             CI.write_json(path / "inventory.json", {"checked_at": "second", "packages": {}})
             self.assertEqual(first, CI.make_report(path, {})["fingerprint"])
+
+    def test_linux_only_evidence_does_not_prove_os_portability(self):
+        needs = {
+            name: {"result": "success"}
+            for name in (
+                "inventory",
+                "static-review",
+                "cpu-compatibility",
+                "cpu-portability",
+                "cuda-wheel",
+            )
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            self.successful_evidence(directory)
+            path = Path(directory)
+            for index in (6, 7):
+                CI.write_json(
+                    path / f"smoke-{index}.json",
+                    {"status": "passed", "device": "CPU", "platform": {"system": "Linux"}},
+                )
+            self.assertFalse(CI.make_report(path, needs)["passed"])
+
+    def test_cpu_wheel_rejects_accelerator_dependencies_from_other_cuda_versions(self):
+        for dependency in ("nvidia-cuda-runtime-cu11", "cuquantum-cu13", "custatevec-cu12"):
+            with self.subTest(dependency=dependency), tempfile.TemporaryDirectory() as directory:
+                wheel = Path(directory) / "test.whl"
+                with zipfile.ZipFile(wheel, "w") as archive:
+                    archive.writestr("qiskit_aer/VERSION.txt", "0.17.2.post1.dev0")
+                    archive.writestr(
+                        "york.dist-info/METADATA",
+                        "Name: qiskit-aer-york-rev\nVersion: 0.17.2.post1.dev0\nRequires-Dist: qiskit\n"
+                        + f"Requires-Dist: {dependency}\n",
+                    )
+                with self.assertRaisesRegex(ValueError, "accelerator packages"):
+                    CI.check_wheel(wheel, False)
 
     def test_source_change_updates_failure_fingerprint(self):
         with tempfile.TemporaryDirectory() as directory:

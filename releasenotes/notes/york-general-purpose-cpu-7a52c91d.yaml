@@ -1,0 +1,15 @@
+---
+features:
+  - |
+    York's default ``qiskit-aer-york-rev`` distribution is the general-purpose
+    CPU simulator, with CUDA acceleration retained as an optional separate
+    build. A Python build-and-verification helper replaces the Bash-only CPU
+    path and protects CPU builds from inherited CUDA settings. Hosted checks
+    now cover Windows and macOS CPU builds in addition to the Linux Python
+    matrix, noise models, all general-purpose CPU simulation methods, and
+    Aer/IBM Runtime local primitives.
+fixes:
+  - |
+    Preserve the Windows CMake dependency search list from vcpkg toolchains,
+    and link the exported system OpenMP target so macOS CPU builds retain
+    their OpenMP runtime dependency.
