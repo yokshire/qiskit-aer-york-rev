@@ -80,9 +80,11 @@ result metadata reports a different device. Do not install a permanent public
 PR-accessible self-hosted runner on a personal machine as part of this setup.
 
 After installing a York GPU wheel and the exact Qiskit/Runtime versions into a
-fresh virtual environment, run **outside the source tree**:
+fresh virtual environment, install the smoke tool's `packaging` dependency
+(this is not an Aer runtime requirement) and run **outside the source tree**:
 
 ```bash
+/path/to/venv/bin/python -m pip install 'packaging>=24,<27'
 env -u LD_LIBRARY_PATH /path/to/venv/bin/python -I \
   /path/to/source/tools/york_smoke.py --device GPU --output /tmp/york-gpu-smoke.json
 ```
