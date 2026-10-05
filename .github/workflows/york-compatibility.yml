@@ -136,7 +136,7 @@ jobs:
           brew install nlohmann-json spdlog libomp
           omp_prefix="$(brew --prefix libomp)"
           echo "CMAKE_PREFIX_PATH=$(brew --prefix)" >> "$GITHUB_ENV"
-          echo "CMAKE_ARGS=-DOpenMP_CXX_FLAGS='-Xpreprocessor -fopenmp' -DOpenMP_CXX_LIB_NAMES=omp -DOpenMP_omp_LIBRARY=$omp_prefix/lib/libomp.dylib -DOpenMP_CXX_INCLUDE_DIR=$omp_prefix/include" >> "$GITHUB_ENV"
+          echo "CMAKE_ARGS=-DOpenMP_CXX_FLAGS='-Xpreprocessor -fopenmp' -DOpenMP_CXX_LIB_NAMES=omp -DOpenMP_omp_LIBRARY=$omp_prefix/lib/libomp.dylib -DOpenMP_CXX_INCLUDE_DIR=$omp_prefix/include -DOpenMP_CXX_INCLUDE_DIRS=$omp_prefix/include" >> "$GITHUB_ENV"
       - name: Windows system build libraries
         if: runner.os == 'Windows'
         shell: pwsh
