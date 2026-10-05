@@ -148,3 +148,6 @@ class _State:
         output = np.empty(self.size, dtype=self.dtype)
         self.cl.enqueue_copy(self.queue, output, self.current).wait()
         return output
+
+    def finish(self):
+        self.queue.finish()

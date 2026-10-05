@@ -204,6 +204,12 @@ def _execute(backend, provider, circuits, binds, options, job_id):
             data["counts"] = counts
             if options.get("memory"):
                 data["memory"] = memory
+        # Complete asynchronous GPU work before reporting success or releasing buffers.
+        finish = getattr(state, "finish", None)
+        if callable(finish):
+            finish()
+        else:
+            state.to_host()
         metadata = dict(state.metadata)
         if metadata.get("device") != "GPU":
             raise AerError("Accelerator plugin did not report GPU execution")
@@ -234,6 +240,8 @@ def _execute(backend, provider, circuits, binds, options, job_id):
                 "metadata": metadata,
             }
         )
+        # Release this circuit before the next RHS allocates a new GPU state.
+        del finish, state
     return Result.from_dict(
         {
             "backend_name": backend.name,

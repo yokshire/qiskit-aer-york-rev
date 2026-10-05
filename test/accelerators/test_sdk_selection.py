@@ -3,10 +3,13 @@
 
 import sys
 import unittest
+from contextlib import nullcontext
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from qiskit_aer_york_cupy import CUDAProvider, ROCmProvider
+import numpy as np
+
+from qiskit_aer_york_cupy import CUDAProvider, ROCmProvider, _State
 from qiskit_aer_york_opencl import OpenCLProvider
 
 
@@ -57,6 +60,20 @@ class SDKSelectionTests(unittest.TestCase):
     def test_unknown_selector_fails(self):
         with self.assertRaises(ValueError):
             self.provider().create_state(2, "single", {"typo": 3})
+
+    def test_cupy_reuses_cached_memory_when_driver_free_memory_is_low(self):
+        cupy = SimpleNamespace(
+            cuda=SimpleNamespace(
+                Device=lambda index: nullcontext(),
+                runtime=SimpleNamespace(memGetInfo=lambda: (0, 8192)),
+            ),
+            get_default_memory_pool=lambda: SimpleNamespace(free_bytes=lambda: 8192),
+            asarray=lambda array: array,
+            empty_like=np.empty_like,
+            RawKernel=lambda *args: None,
+        )
+        state = _State(cupy, {"device_id": "0"}, 2, "double")
+        np.testing.assert_array_equal(state.current, [1, 0, 0, 0])
 
 
 if __name__ == "__main__":

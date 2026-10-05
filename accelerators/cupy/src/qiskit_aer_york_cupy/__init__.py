@@ -96,6 +96,7 @@ class _State:
         self.size = 1 << num_qubits
         with self.device:
             free, _ = cp.cuda.runtime.memGetInfo()
+            free += cp.get_default_memory_pool().free_bytes()
             if 2 * self.size * np.dtype(self.dtype).itemsize + 4096 > free:
                 raise MemoryError("Statevector exceeds selected GPU free memory")
             initial = np.zeros(self.size, dtype=self.dtype)
@@ -127,3 +128,7 @@ class _State:
     def to_host(self):
         with self.device:
             return self.cp.asnumpy(self.current)
+
+    def finish(self):
+        with self.device:
+            self.cp.cuda.get_current_stream().synchronize()

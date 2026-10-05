@@ -2,6 +2,7 @@
 """Plugin contract tests. The host engine below is a test double, not GPU evidence."""
 
 import unittest
+import weakref
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -238,6 +239,25 @@ class PluginContractTests(unittest.TestCase):
     def test_capabilities_respect_selected_vendor_and_device(self):
         for selector in ({"vendor": "amd"}, {"device_id": "9"}):
             self.assertEqual(self.backend(accelerator_options=selector).available_devices(), [])
+
+    def test_batches_release_previous_gpu_state_before_allocating_next(self):
+        class TrackingProvider(HostTestProvider):
+            def __init__(self):
+                self.previous = None
+
+            def create_state(self, num_qubits, precision, options):
+                if self.previous is not None and self.previous() is not None:
+                    raise MemoryError("Previous circuit's GPU allocation is still held")
+                state = HostTestState(num_qubits)
+                self.previous = weakref.ref(state)
+                return state
+
+        with patch(
+            "qiskit_aer.accelerators.entry_points", return_value=[entry(provider=TrackingProvider)]
+        ):
+            circuit = QuantumCircuit(1)
+            circuit.x(0)
+            self.assertTrue(self.backend().run([circuit, circuit]).result().success)
 
 
 if __name__ == "__main__":

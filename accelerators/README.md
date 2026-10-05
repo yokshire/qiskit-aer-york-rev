@@ -120,6 +120,9 @@ statevector), and `metadata` including `device='GPU'`, vendor, runtime, name,
 driver, and device ID. It starts in |0...0>. SDK loading, actual GPU selection,
 precision/memory checks, synchronization, and resource lifetime belong to the
 provider. A provider must never label CPU/software execution as GPU execution.
+An optional `finish()` synchronizes queued work without a host copy; otherwise
+the adapter uses `to_host()` to synchronize before job completion. Circuit
+buffers are released before allocating the next state in a batch.
 The CPU distribution has no accelerator requirements and never imports SDKs
 just to list installed entry points.
 
