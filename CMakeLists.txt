@@ -401,7 +401,9 @@ if(AER_THRUST_SUPPORTED)
 		if(NOT OPENMP_FOUND)
 			message(FATAL_ERROR "There's no OMP support. We cannot set Thrust backend to OMP!!")
 		endif()
-		set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} AER_THRUST_CPU=TRUE)
+		# York revision: system Thrust defaults to CUDA unless its device system is explicit.
+		set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS}
+			AER_THRUST_CPU=TRUE THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_OMP)
 		# We don't need to add OMP because it's already an AER dependency
 		set(THRUST_DEPENDENT_LIBS "")
 	elseif(AER_THRUST_BACKEND STREQUAL "ROCM")

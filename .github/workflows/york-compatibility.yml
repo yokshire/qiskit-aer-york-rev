@@ -108,7 +108,8 @@ jobs:
   cuda-wheel:
     needs: inventory
     name: CUDA 12 wheel build and metadata (no GPU execution)
-    runs-on: ubuntu-24.04
+    # Match the Python toolcache ABI to the Ubuntu 22.04 CUDA container.
+    runs-on: ubuntu-22.04
     timeout-minutes: 60
     container: nvidia/cuda:12.4.1-devel-ubuntu22.04
     defaults:
@@ -178,6 +179,9 @@ jobs:
     needs: report
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    concurrency:
+      group: york-compatibility-notifications
+      cancel-in-progress: false
     permissions:
       contents: read
       issues: write
