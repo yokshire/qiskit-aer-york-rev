@@ -190,7 +190,8 @@ endif ()
 
 if(NOT OPENMP_FOUND) # Could already be setup for macos with conan
 	message(STATUS "Looking for OpenMP support...")
-	find_package(OpenMP QUIET)
+	# York revision: the simulator uses C++ OpenMP; C support is not required.
+	find_package(OpenMP QUIET COMPONENTS CXX)
 	if(OPENMP_FOUND)
 		# York revision: retain the system OpenMP target's runtime-library linkage.
 		if(TARGET OpenMP::OpenMP_CXX)
