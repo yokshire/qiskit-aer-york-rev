@@ -8,3 +8,8 @@ features:
     now cover Windows and macOS CPU builds in addition to the Linux Python
     matrix, noise models, all general-purpose CPU simulation methods, and
     Aer/IBM Runtime local primitives.
+fixes:
+  - |
+    Preserve the Windows CMake dependency search list from vcpkg toolchains,
+    and link the exported system OpenMP target so macOS CPU builds retain
+    their OpenMP runtime dependency.
