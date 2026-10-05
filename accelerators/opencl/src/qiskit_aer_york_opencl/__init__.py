@@ -99,6 +99,17 @@ class OpenCLProvider:
         return _State(self.cl, device, self._info(device_id, device), num_qubits, precision)
 
 
+class OpenCLEngine:
+    """Core engine factory; the full Aer native bundle is optional."""
+
+    api_version = 1
+
+    def create_backend(self, **options):
+        from qiskit_aer_york_qiskit import StatevectorBackend
+
+        return StatevectorBackend(OpenCLProvider(), engine="opencl", device="GPU", **options)
+
+
 class _State:
     def __init__(self, cl, device, metadata, num_qubits, precision):
         self.cl = cl

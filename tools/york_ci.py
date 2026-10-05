@@ -118,6 +118,7 @@ def make_report(directory, needs):
     required_jobs = {
         "inventory",
         "static-review",
+        "modular-install",
         "cpu-compatibility",
         "cpu-portability",
         "cuda-wheel",
@@ -137,6 +138,21 @@ def make_report(directory, needs):
         or len(gpu_metadata_files) != 1
     ):
         passed = False
+    modular_results = [
+        json.loads(path.read_text(encoding="utf-8"))
+        for path in sorted(directory.rglob("modular-*.json"))
+    ]
+    if {result.get("label") for result in modular_results} != {
+        "ubuntu-24.04",
+        "windows-2022",
+        "macos-14",
+    } or any(
+        result.get("passed") is not True
+        or result.get("core_dependencies") != []
+        or result.get("native_aer_installed") is not False
+        for result in modular_results
+    ):
+        passed = False
     for result in cpu_results:
         expected = versions.get("packages", {})
         for name in ("qiskit", "qiskit-ibm-runtime"):
@@ -150,6 +166,7 @@ def make_report(directory, needs):
             {
                 "packages": packages,
                 "checks": checks,
+                "modular": modular_results,
                 "passed": passed,
                 "source_commit": os.environ.get("GITHUB_SHA", "local"),
                 "smoke": [
@@ -172,7 +189,7 @@ def make_report(directory, needs):
         ).encode()
     ).hexdigest()
     heading = (
-        "PASS — general-purpose CPU compatibility, OS portability, and optional CUDA packaging"
+        "PASS — dependency-free core, optional engines, CPU/OS compatibility and CUDA packaging"
         if passed
         else "FAIL — review required"
     )
@@ -212,6 +229,11 @@ def make_report(directory, needs):
         )
         if result.get("error"):
             lines.append(f"  Failure: {result['error']}")
+    lines += ["", "## Lightweight install evidence", ""]
+    for result in modular_results:
+        lines.append(
+            f"- {result.get('label')}: core has zero runtime dependencies; CPU runs without native Aer; passed={result.get('passed')}."
+        )
     if not smoke_results:
         lines.append("No functional evidence was produced; inspect failed or skipped jobs.")
     lines += [

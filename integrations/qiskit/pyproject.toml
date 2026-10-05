@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "qiskit-aer-york-qiskit"
+version = "0.1.0"
+description = "Optional Qiskit backend, job and result integration for York plugins"
+requires-python = ">=3.10"
+dependencies = ["qiskit-aer-york-core>=0.1,<0.2", "qiskit>=2.0,<3", "numpy>=1.26,<3"]
+license = "Apache-2.0"
+license-files = ["LICENSE.txt"]
+
+[project.entry-points."qiskit_aer_york.integrations"]
+qiskit = "qiskit_aer_york_qiskit:QiskitIntegration"
+
+[tool.setuptools.packages.find]
+where = ["src"]

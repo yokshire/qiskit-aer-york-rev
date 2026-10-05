@@ -87,6 +87,22 @@ class ROCmProvider(_Provider):
     hip = True
 
 
+class CUDAEngine:
+    api_version = 1
+    provider = CUDAProvider
+    engine = "cuda"
+
+    def create_backend(self, **options):
+        from qiskit_aer_york_qiskit import StatevectorBackend
+
+        return StatevectorBackend(self.provider(), engine=self.engine, device="GPU", **options)
+
+
+class ROCmEngine(CUDAEngine):
+    provider = ROCmProvider
+    engine = "rocm"
+
+
 class _State:
     def __init__(self, cp, metadata, num_qubits, precision):
         self.cp = cp

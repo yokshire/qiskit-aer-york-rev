@@ -39,4 +39,7 @@ docs/_build/
 docs/stubs/
 docs/api/
 accelerators/*/build/
+core/build/
+integrations/*/build/
+engines/*/build/
 

@@ -1,8 +1,8 @@
 # York revision maintenance and automation
 
 This is an unofficial independent **general-purpose** customization of Qiskit Aer.
-The default distribution runs on CPU without GPU hardware or CUDA. GPU builds
-are an optional acceleration path. The original
+The default modular core has zero runtime dependencies; CPU engines, circuit
+framework integrations and GPU runtimes are explicitly selected plugins. The original
 source history, Apache-2.0 license, and contributor notices are retained.
 It does not replace or close upstream PRs #2458 and #2459 in
 `Qiskit/qiskit-aer`; their existing branches and AI disclosure are unchanged.
@@ -13,9 +13,13 @@ It does not replace or close upstream PRs #2458 and #2459 in
 - Integrated patches: the CUDA/C++ compiler-selection fix and local-wheel
   `$ORIGIN` RPATH fix, including both verification tools and release notes.
 - Development version: `0.17.2.post2.dev0` (accelerator API 1).
-- Default general-purpose CPU name: `qiskit-aer-york-rev`.
+- Default modular core: `qiskit-aer-york-core` 0.1.0.
+- Optional Qiskit integration, CPU statevector and native bridge: separate 0.1.0 wheels.
+- Optional full native CPU bundle: `qiskit-aer-york-rev`.
+- GPU plugin wheels: 0.2.0; depend on the core and optional Qiskit integration,
+  not the full native bundle. See [modular architecture](MODULAR_ARCHITECTURE.md).
 - Optional plugins: `qiskit-aer-york-opencl` and `qiskit-aer-york-cupy`, using
-  separate `qiskit_aer_york_*` namespaces. They coexist with the CPU base.
+  separate `qiskit_aer_york_*` namespaces. They run independently of the native CPU bundle and can coexist with it.
 - Older standalone CUDA 12 name: `qiskit-aer-york-rev-gpu`.
 - The base and older standalone GPU build both own `qiskit_aer`. Install only
   one of these base distributions. The new plugins do not overwrite their files.
@@ -52,7 +56,7 @@ Each run:
    with Python 3.10–3.14 and setup-python's latest stable `3.x`, and on Windows
    x86-64 and macOS arm64 with Python 3.12. The CPU build uses the same Python
    helper on all platforms and explicitly clears inherited CUDA build settings.
-3. Rejects accelerator dependencies in the default wheel. Runs `pip check`,
+3. Rejects accelerator dependencies in the full native CPU wheel. Runs `pip check`,
    Bell shot sampling with automatic/statevector/density-matrix/stabilizer/
    extended-stabilizer/MPS methods, exact statevector/density-matrix/unitary/
    superoperator comparisons, a deterministic noise model, Aer SamplerV2 and
@@ -67,7 +71,11 @@ Each run:
    The upstream legacy deferred `BackendProperties` annotation has a
    line-specific lint baseline; it does not suppress undefined-name checks
    elsewhere in the module or in York tooling.
-6. Saves a Markdown job summary and JSON/Markdown artifacts for 30 days. A
+6. Builds six independent plugin/core wheels; proves dependency-free bare-core
+   installation and functional ideal CPU execution without native Aer in fresh
+   environments on Windows/Linux/macOS. Tests optional Qiskit primitives and
+   the native bridge separately from the lightweight path.
+7. Saves a Markdown job summary and JSON/Markdown artifacts for 30 days. A
    failed trusted run creates/updates **one** automated issue; an unchanged
    failure is not reposted, and recovery closes only that automated issue.
    PR runs have no issue-write job. Nothing is automatically merged or released.
