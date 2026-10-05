@@ -35,7 +35,15 @@ class HostTestProvider:
     api_version = 1
 
     def devices(self):
-        return [{"device": "GPU", "name": "TEST DOUBLE"}]
+        return [
+            {
+                "device": "GPU",
+                "name": "TEST DOUBLE",
+                "vendor": "test",
+                "device_id": "0",
+                "fp64": True,
+            }
+        ]
 
     def create_state(self, num_qubits, precision, options):
         return HostTestState(num_qubits)
@@ -222,8 +230,14 @@ class PluginContractTests(unittest.TestCase):
         result = backend.run(circuit, accelerator="test", shots=8).result()
         self.assertEqual(result.get_counts(), {"1": 8})
         self.assertIsNone(backend.options.accelerator)
+        self.assertEqual(backend.options.device, "CPU")
+        self.assertEqual(self.backend().options.device, "GPU")
         self.assertEqual(self.backend().available_methods(), ["automatic", "statevector"])
         self.assertEqual(self.backend().available_devices(), ["GPU"])
+
+    def test_capabilities_respect_selected_vendor_and_device(self):
+        for selector in ({"vendor": "amd"}, {"device_id": "9"}):
+            self.assertEqual(self.backend(accelerator_options=selector).available_devices(), [])
 
 
 if __name__ == "__main__":

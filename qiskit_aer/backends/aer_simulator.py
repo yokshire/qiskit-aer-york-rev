@@ -715,6 +715,8 @@ class AerSimulator(AerBackend):
     ):
         # York revision: retain explicitly selected options for strict plugin validation.
         self._accelerator_explicit_options = {}
+        if backend_options.get("accelerator") and "device" not in backend_options:
+            backend_options["device"] = "GPU"
         self._controller = aer_controller_execute()
 
         # Update available methods and devices for class
@@ -890,7 +892,20 @@ class AerSimulator(AerBackend):
         if getattr(self.options, "accelerator", None):
             from qiskit_aer.accelerators import accelerator_devices
 
-            return ["GPU"] if accelerator_devices(self.options.accelerator) else []
+            devices = accelerator_devices(self.options.accelerator)
+            selector = self.options.accelerator_options or {}
+            devices = [
+                device
+                for device in devices
+                if device.get("device") == "GPU"
+                and ("vendor" not in selector or device.get("vendor") == selector["vendor"].lower())
+                and (
+                    "device_id" not in selector
+                    or device.get("device_id") == str(selector["device_id"])
+                )
+                and (self.options.precision != "double" or device.get("fp64", False))
+            ]
+            return ["GPU"] if devices else []
         if "_gpu" in self.name:
             return ["GPU"]
         return copy.copy(self._AVAILABLE_DEVICES)
