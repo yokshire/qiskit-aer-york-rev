@@ -9,8 +9,10 @@ It is not an IBM/Qiskit-endorsed release.
 
 - Default distribution: **`qiskit-aer-york-rev`**, running on CPU without a GPU,
   CUDA toolkit, NVIDIA driver, or accelerator Python packages.
-- Optional acceleration: `qiskit-aer-york-rev-gpu` is a separate CUDA 12 build.
-  Installing CUDA libraries alone does not turn a CPU wheel into a GPU wheel.
+- Optional acceleration: independently installed OpenCL and CUDA/ROCm plugins
+  extend the CPU package. NVIDIA CUDA and NVIDIA/Intel OpenCL execution work
+  natively on Windows. See [plugin installation and limits](accelerators/README.md).
+  The older `qiskit-aer-york-rev-gpu` is a standalone native CUDA build.
 - Python imports remain `qiskit_aer`; use a dedicated virtual environment.
   Do not install this together with `qiskit-aer` or `qiskit-aer-gpu`.
 - No York wheel has been published to PyPI or GitHub Releases yet.
@@ -61,6 +63,33 @@ CI test Python 3.12. All use exact current stable Qiskit and Runtime releases.
 These are tested matrix entries, not a promise of every OS/CPU/Python combination.
 See [York maintenance and automation](YORK_REVISION.md) for platform prerequisites,
 the schedule, build instructions, and optional GPU validation.
+
+## Add an accelerator plugin
+
+With the new York CPU wheel installed, install `./accelerators/opencl` from
+this checkout into the same environment and keep your GPU vendor driver current:
+
+```text
+python -m pip install ./accelerators/opencl
+```
+
+```python
+from qiskit_aer import AerSimulator
+
+# Choose 'nvidia', 'amd', or 'intel'; Intel GPUs without FP64 need 'single'.
+simulator = AerSimulator(
+    accelerator="opencl",
+    accelerator_options={"vendor": "intel"},
+    precision="single",
+)
+result = simulator.run(circuit, shots=1024).result()
+```
+
+These first plugins support ideal statevector evolution and terminal sampling,
+including Aer SamplerV2/EstimatorV2. Noise, reset, intermediate measurements,
+other simulation methods, and CUDA-specific Aer tuning options fail explicitly.
+Full CPU Aer remains available in the same environment and process. AMD/ROCm
+hardware validation is outstanding; see the [support matrix](accelerators/README.md).
 
 ## Original upstream documentation
 

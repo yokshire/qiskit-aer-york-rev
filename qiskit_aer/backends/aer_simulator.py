@@ -713,6 +713,8 @@ class AerSimulator(AerBackend):
     def __init__(
         self, configuration=None, properties=None, provider=None, target=None, **backend_options
     ):
+        # York revision: retain explicitly selected options for strict plugin validation.
+        self._accelerator_explicit_options = {}
         self._controller = aer_controller_execute()
 
         # Update available methods and devices for class
@@ -764,6 +766,9 @@ class AerSimulator(AerBackend):
             method="automatic",
             device="CPU",
             precision="double",
+            # York revision: independent, lazily loaded accelerator distributions.
+            accelerator=None,
+            accelerator_options=None,
             executor=None,
             max_job_size=None,
             max_shot_size=None,
@@ -876,10 +881,16 @@ class AerSimulator(AerBackend):
 
     def available_methods(self):
         """Return the available simulation methods."""
+        if getattr(self.options, "accelerator", None):
+            return ["automatic", "statevector"]
         return copy.copy(self._AVAILABLE_METHODS)
 
     def available_devices(self):
         """Return the available simulation methods."""
+        if getattr(self.options, "accelerator", None):
+            from qiskit_aer.accelerators import accelerator_devices
+
+            return ["GPU"] if accelerator_devices(self.options.accelerator) else []
         if "_gpu" in self.name:
             return ["GPU"]
         return copy.copy(self._AVAILABLE_DEVICES)
@@ -907,9 +918,35 @@ class AerSimulator(AerBackend):
         ret = cpp_execute_circuits(self._controller, aer_circuits, noise_model, config)
         return ret
 
+    def run(self, circuits, parameter_binds=None, **run_options):
+        """Run on native Aer or an explicitly selected York accelerator plugin."""
+        accelerator = run_options.get("accelerator", self.options.accelerator)
+        if accelerator is None:
+            run_options.pop("accelerator", None)
+            run_options.pop("accelerator_options", None)
+            return super().run(circuits, parameter_binds=parameter_binds, **run_options)
+        from qiskit_aer.accelerators.statevector import submit_job
+
+        options = {
+            "shots": self.options.shots,
+            "method": self.options.method,
+            "precision": self.options.precision,
+            "memory": self.options.memory,
+            "seed_simulator": self.options.seed_simulator,
+            "noise_model": self.options.noise_model,
+            "max_memory_mb": self.options.max_memory_mb,
+            "executor": self.options.executor,
+        }
+        options.update(self._accelerator_explicit_options)
+        options.update(run_options)
+        options["accelerator"] = accelerator
+        options.setdefault("device", "GPU")
+        return submit_job(self, circuits, parameter_binds, options)
+
     def set_option(self, key, value):
         if key == "custom_instructions":
             self._set_configuration_option(key, value)
+            self._accelerator_explicit_options[key] = value
             return
         if key == "method":
             if value is not None and value not in self.available_methods():
@@ -922,6 +959,11 @@ class AerSimulator(AerBackend):
             self._check_basis_gates(value)
 
         super().set_option(key, value)
+        # York revision: record only successfully applied options for plugin validation.
+        if value is None:
+            self._accelerator_explicit_options.pop(key, None)
+        else:
+            self._accelerator_explicit_options[key] = value
         if key in ["method", "noise_model", "basis_gates"]:
             self._cached_basis_gates = self._basis_gates()
 

@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "qiskit-aer-york-cupy"
+version = "0.1.0"
+description = "Optional CUDA and ROCm statevector plugins for York Aer"
+requires-python = ">=3.10"
+dependencies = ["qiskit-aer-york-rev>=0.17.2.post2.dev0,<0.18"]
+license = {file = "LICENSE.txt"}
+
+[project.optional-dependencies]
+cuda12 = ["cupy-cuda12x[ctk]>=13.3,<15"]
+# Install a CuPy HIP build matching the AMD SDK separately; never install CUDA for ROCm.
+
+[project.entry-points."qiskit_aer_york.accelerators"]
+cuda = "qiskit_aer_york_cupy:CUDAProvider"
+rocm = "qiskit_aer_york_cupy:ROCmProvider"
+
+[tool.setuptools.packages.find]
+where = ["src"]

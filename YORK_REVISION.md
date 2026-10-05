@@ -12,11 +12,13 @@ It does not replace or close upstream PRs #2458 and #2459 in
 - Bootstrap source: upstream commit `755381a015037c66af3e3d0cc54ff1a56dbe7ace`.
 - Integrated patches: the CUDA/C++ compiler-selection fix and local-wheel
   `$ORIGIN` RPATH fix, including both verification tools and release notes.
-- Development version: `0.17.2.post1.dev0`.
+- Development version: `0.17.2.post2.dev0` (accelerator API 1).
 - Default general-purpose CPU name: `qiskit-aer-york-rev`.
-- Optional CUDA 12 name: `qiskit-aer-york-rev-gpu`.
-- Import namespace: `qiskit_aer`. Install only one Aer distribution in an
-  isolated environment. Renaming a distribution does not isolate import files.
+- Optional plugins: `qiskit-aer-york-opencl` and `qiskit-aer-york-cupy`, using
+  separate `qiskit_aer_york_*` namespaces. They coexist with the CPU base.
+- Older standalone CUDA 12 name: `qiskit-aer-york-rev-gpu`.
+- The base and older standalone GPU build both own `qiskit_aer`. Install only
+  one of these base distributions. The new plugins do not overwrite their files.
 - There is no published York wheel yet. CI builds are not release artifacts;
   the CUDA CI build targets compute capability 8.6, not all NVIDIA GPUs.
 
@@ -128,6 +130,17 @@ remain running, with the project available. GitHub compatibility checks run
 independently. See the [scheduled-task documentation](https://learn.chatgpt.com/docs/automations).
 
 ## Optional GPU execution boundary
+
+The new [accelerator plugins](accelerators/README.md) add native Windows GPU
+execution to the CPU base and a common vendor-neutral OpenCL path. CUDA and
+ROCm/HIP have separate entry points. CUDA requires a CUDA CuPy build, ROCm
+requires a HIP CuPy build, and Intel uses OpenCL. API 1 supports ideal
+statevector circuits, terminal measurements, and supported save instructions.
+Hosted CI builds both plugin wheels and runs contract tests against the built
+CPU package on Linux, Windows and macOS. Those tests are not GPU evidence.
+
+The remaining instructions below describe the **older standalone native CUDA
+build**, which has broader Aer GPU features but shares the base import namespace.
 
 **Hosted CI does not execute on a physical GPU.** Successful compilation,
 dependency resolution, and ELF metadata do not prove GPU availability, driver
