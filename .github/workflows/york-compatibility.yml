@@ -196,6 +196,14 @@ jobs:
         with:
           script: |
             const fs = require('fs');
+            const { data: repository } = await github.rest.repos.get(context.repo);
+            const { data: defaultBranch } = await github.rest.repos.getBranch({
+              ...context.repo, branch: repository.default_branch
+            });
+            if (defaultBranch.commit.sha !== context.sha) {
+              core.info('Skipping stale results: the default branch has a newer commit.');
+              return;
+            }
             const report = JSON.parse(fs.readFileSync('review/review.json', 'utf8'));
             if (typeof report.passed !== 'boolean' || !/^[a-f0-9]{64}$/.test(report.fingerprint)) {
               throw new Error('Invalid compatibility report');

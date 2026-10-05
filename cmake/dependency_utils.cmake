@@ -55,6 +55,11 @@ macro(_import_aer_system_dependency package version)
 	endif()
 	string(TOLOWER ${package} PACKAGE_LOWER) # Conan use lowercase for every lib
 	add_library(AER_DEPENDENCY_PKG::${PACKAGE_LOWER} INTERFACE IMPORTED)
-	target_link_libraries(AER_DEPENDENCY_PKG::${PACKAGE_LOWER} PUBLIC INTERFACE ${package})
+	# York revision: use exported targets to retain transitive fmt linkage and definitions.
+	if(TARGET ${package}::${package})
+		target_link_libraries(AER_DEPENDENCY_PKG::${PACKAGE_LOWER} INTERFACE ${package}::${package})
+	else()
+		target_link_libraries(AER_DEPENDENCY_PKG::${PACKAGE_LOWER} INTERFACE ${package})
+	endif()
 	message(STATUS "Using system-provided ${PACKAGE_LOWER} library")
 endmacro()

@@ -132,6 +132,7 @@ def make_report(directory, needs):
                 "packages": packages,
                 "checks": checks,
                 "passed": passed,
+                "source_commit": os.environ.get("GITHUB_SHA", "local"),
                 "smoke": [
                     {
                         key: result.get(key)
@@ -150,6 +151,8 @@ def make_report(directory, needs):
         "# York compatibility review",
         "",
         heading,
+        "",
+        f"Tested source commit: `{os.environ.get('GITHUB_SHA', 'local')}`.",
         "",
         "**GPU execution: NOT TESTED by hosted CI.** A successful CUDA build/ELF check is not",
         "proof that Aer can execute on a physical GPU. These are targeted smoke checks,",

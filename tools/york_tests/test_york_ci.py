@@ -5,6 +5,7 @@ import importlib.util
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 import zipfile
 
 SPEC = importlib.util.spec_from_file_location("york_ci", Path(__file__).parents[1] / "york_ci.py")
@@ -129,6 +130,14 @@ class YorkCITests(unittest.TestCase):
             first = CI.make_report(path, {})["fingerprint"]
             CI.write_json(path / "inventory.json", {"checked_at": "second", "packages": {}})
             self.assertEqual(first, CI.make_report(path, {})["fingerprint"])
+
+    def test_source_change_updates_failure_fingerprint(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory)
+            with patch.dict(CI.os.environ, {"GITHUB_SHA": "first"}):
+                first = CI.make_report(path, {})["fingerprint"]
+            with patch.dict(CI.os.environ, {"GITHUB_SHA": "second"}):
+                self.assertNotEqual(first, CI.make_report(path, {})["fingerprint"])
 
 
 if __name__ == "__main__":

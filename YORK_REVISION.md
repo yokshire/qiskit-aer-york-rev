@@ -60,6 +60,8 @@ Each run:
    failed trusted run creates/updates **one** automated issue; an unchanged
    failure is not reposted, and recovery closes only that automated issue.
    PR runs have no issue-write job. Nothing is automatically merged or released.
+   Results from superseded source commits cannot reopen/update the current
+   failure issue. Notification jobs are serialized to avoid creation races.
 
 Upstream CPU/GPU PyPI release differences are recorded as inventory information,
 not incorrectly attributed to a York patch regression. Unsupported Python
