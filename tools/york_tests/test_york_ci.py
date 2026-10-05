@@ -42,8 +42,14 @@ class YorkCITests(unittest.TestCase):
                     "label": label,
                     "core_dependencies": [],
                     "native_aer_installed": False,
+                    "nature_without_pyscf": True,
                 },
             )
+
+        CI.write_json(
+            path / "nature-native.json",
+            {"passed": True, "runtime": "native", "native_aer_installed": False},
+        )
 
     def test_missing_modular_install_evidence_is_not_a_pass(self):
         needs = {
@@ -52,6 +58,7 @@ class YorkCITests(unittest.TestCase):
                 "inventory",
                 "static-review",
                 "modular-install",
+                "nature-driver",
                 "cpu-compatibility",
                 "cpu-portability",
                 "cuda-wheel",
@@ -108,6 +115,7 @@ class YorkCITests(unittest.TestCase):
                 "inventory",
                 "static-review",
                 "modular-install",
+                "nature-driver",
                 "cpu-compatibility",
                 "cpu-portability",
                 "cuda-wheel",
@@ -133,6 +141,7 @@ class YorkCITests(unittest.TestCase):
                 "inventory",
                 "static-review",
                 "modular-install",
+                "nature-driver",
                 "cpu-compatibility",
                 "cpu-portability",
                 "cuda-wheel",
@@ -151,6 +160,7 @@ class YorkCITests(unittest.TestCase):
                 "inventory",
                 "static-review",
                 "modular-install",
+                "nature-driver",
                 "cpu-compatibility",
                 "cpu-portability",
                 "cuda-wheel",
@@ -166,6 +176,7 @@ class YorkCITests(unittest.TestCase):
                 "inventory",
                 "static-review",
                 "modular-install",
+                "nature-driver",
                 "cpu-compatibility",
                 "cpu-portability",
                 "cuda-wheel",
@@ -195,6 +206,7 @@ class YorkCITests(unittest.TestCase):
                 "inventory",
                 "static-review",
                 "modular-install",
+                "nature-driver",
                 "cpu-compatibility",
                 "cpu-portability",
                 "cuda-wheel",

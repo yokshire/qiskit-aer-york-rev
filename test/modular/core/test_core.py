@@ -12,7 +12,17 @@ from qiskit_aer_york import Simulator, MissingPluginError, PluginError, load_plu
 
 class CoreTests(unittest.TestCase):
     def test_core_has_no_heavy_dependencies(self):
-        for name in ("numpy", "scipy", "qiskit", "qiskit_aer", "cupy", "pyopencl"):
+        for name in (
+            "numpy",
+            "scipy",
+            "qiskit",
+            "qiskit_nature",
+            "pyscf",
+            "psi4",
+            "qiskit_aer",
+            "cupy",
+            "pyopencl",
+        ):
             self.assertIsNone(importlib.util.find_spec(name), name)
             self.assertNotIn(name, sys.modules)
         requirements = metadata.requires("qiskit-aer-york-core") or []

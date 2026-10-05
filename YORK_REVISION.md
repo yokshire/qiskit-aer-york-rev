@@ -71,10 +71,12 @@ Each run:
    The upstream legacy deferred `BackendProperties` annotation has a
    line-specific lint baseline; it does not suppress undefined-name checks
    elsewhere in the module or in York tooling.
-6. Builds six independent plugin/core wheels; proves dependency-free bare-core
+6. Builds eight independent plugin/core wheels; proves dependency-free bare-core
    installation and functional ideal CPU execution without native Aer in fresh
    environments on Windows/Linux/macOS. Tests optional Qiskit primitives and
    the native bridge separately from the lightweight path.
+   Tests Nature with PySCF absent on all three operating systems and a real
+   optional PySCF H2 calculation on Linux. Windows-to-WSL has local evidence.
 7. Saves a Markdown job summary and JSON/Markdown artifacts for 30 days. A
    failed trusted run creates/updates **one** automated issue; an unchanged
    failure is not reposted, and recovery closes only that automated issue.

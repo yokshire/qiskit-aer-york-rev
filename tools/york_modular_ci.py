@@ -16,6 +16,8 @@ ROOT = Path(__file__).resolve().parents[1]
 PROJECTS = (
     "core",
     "integrations/qiskit",
+    "integrations/nature",
+    "drivers/pyscf",
     "engines/statevector",
     "engines/native",
     "accelerators/opencl",
@@ -41,7 +43,7 @@ def build_wheels(output):
     )
     wheels = sorted(output.glob("*.whl"))
     if len(wheels) != len(PROJECTS):
-        raise RuntimeError("Expected six clean independent wheels")
+        raise RuntimeError(f"Expected {len(PROJECTS)} clean independent wheels")
     evidence = []
     for wheel in wheels:
         with zipfile.ZipFile(wheel) as archive:
@@ -62,6 +64,16 @@ def build_wheels(output):
                 "qiskit-aer-york-rev" in requirement for requirement in requirements
             ):
                 raise RuntimeError("Lightweight plugin depends on the full native bundle")
+            if distribution == "qiskit-aer-york-nature" and any(
+                "pyscf" in requirement.lower() or "psi4" in requirement.lower()
+                for requirement in requirements
+            ):
+                raise RuntimeError("Nature integration depends on a chemistry SDK")
+            if distribution == "qiskit-aer-york-pyscf" and any(
+                "pyscf" in requirement.lower() and "extra ==" not in requirement
+                for requirement in requirements
+            ):
+                raise RuntimeError("Driver installs PySCF without an explicit extra")
             evidence.append(
                 {
                     "name": distribution,
@@ -85,7 +97,16 @@ def main():
     args = parser.parse_args()
     wheels, evidence = build_wheels(ROOT / "artifacts/modular-wheels")
     core = next(wheel for wheel in wheels if wheel.name.startswith("qiskit_aer_york_core-"))
-    light = [wheel for wheel in wheels if not wheel.name.startswith("qiskit_aer_york_native-")]
+    nature = [
+        wheel
+        for wheel in wheels
+        if wheel.name.startswith(("qiskit_aer_york_nature-", "qiskit_aer_york_pyscf-"))
+    ]
+    light = [
+        wheel
+        for wheel in wheels
+        if not wheel.name.startswith("qiskit_aer_york_native-") and wheel not in nature
+    ]
     with tempfile.TemporaryDirectory(prefix="york-modular-") as temporary:
         outside = Path(temporary)
         bare = env_python(outside / "core-only")
@@ -105,7 +126,20 @@ def main():
             "-v",
             cwd=outside,
         )
+        run(functional, "-m", "pip", "install", *nature, cwd=outside)
+        run(functional, "-m", "pip", "check", cwd=outside)
+        run(
+            functional,
+            "-m",
+            "unittest",
+            "discover",
+            "-s",
+            ROOT / "test/modular/nature",
+            "-v",
+            cwd=outside,
+        )
     report = {
+        "nature_without_pyscf": True,
         "passed": True,
         "core_dependencies": [],
         "native_aer_installed": False,

@@ -44,6 +44,11 @@ still installs the complete C++ Aer bundle when explicitly selected; its methods
 are not yet individually distributed. Unsupported ideal-engine operations
 fail explicitly and do not select another engine automatically.
 
+Qiskit Nature data/mapping and PySCF calculation are separate optional plugins.
+Windows can use portable FCIDump integrals without a chemistry SDK, or explicitly
+run just the PySCF step in WSL while Nature and York stay native. See
+[Nature/PySCF compatibility and installation](NATURE_COMPATIBILITY.md).
+
 ## Existing native Aer bundle
 
 `qiskit-aer-york-rev` remains the optional full CPU bundle and imports as

@@ -41,5 +41,6 @@ docs/api/
 accelerators/*/build/
 core/build/
 integrations/*/build/
+drivers/*/build/
 engines/*/build/
 

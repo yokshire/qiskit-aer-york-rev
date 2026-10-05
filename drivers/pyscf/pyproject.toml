@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "qiskit-aer-york-pyscf"
+version = "0.1.0"
+description = "Optional isolated PySCF worker, including explicit Windows-to-WSL execution"
+requires-python = ">=3.10"
+dependencies = ["qiskit-aer-york-core>=0.1,<0.2"]
+license = "Apache-2.0"
+license-files = ["LICENSE.txt"]
+
+[project.optional-dependencies]
+# Opt in on a supported OS; Windows controllers use an explicitly configured WSL worker.
+native = ["pyscf>=2.8,<3; platform_system == 'Linux' or platform_system == 'Darwin'"]
+
+[project.entry-points."qiskit_aer_york.drivers"]
+pyscf = "qiskit_aer_york_pyscf:PySCFDriver"
+
+[tool.setuptools.packages.find]
+where = ["src"]

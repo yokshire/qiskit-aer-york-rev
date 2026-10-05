@@ -119,6 +119,7 @@ def make_report(directory, needs):
         "inventory",
         "static-review",
         "modular-install",
+        "nature-driver",
         "cpu-compatibility",
         "cpu-portability",
         "cuda-wheel",
@@ -153,6 +154,15 @@ def make_report(directory, needs):
         for result in modular_results
     ):
         passed = False
+    nature_files = list(directory.rglob("nature-native.json"))
+    nature_results = [json.loads(path.read_text(encoding="utf-8")) for path in nature_files]
+    if (
+        len(nature_results) != 1
+        or nature_results[0].get("passed") is not True
+        or nature_results[0].get("runtime") != "native"
+        or nature_results[0].get("native_aer_installed") is not False
+    ):
+        passed = False
     for result in cpu_results:
         expected = versions.get("packages", {})
         for name in ("qiskit", "qiskit-ibm-runtime"):
@@ -167,6 +177,7 @@ def make_report(directory, needs):
                 "packages": packages,
                 "checks": checks,
                 "modular": modular_results,
+                "nature": nature_results,
                 "passed": passed,
                 "source_commit": os.environ.get("GITHUB_SHA", "local"),
                 "smoke": [
@@ -232,7 +243,11 @@ def make_report(directory, needs):
     lines += ["", "## Lightweight install evidence", ""]
     for result in modular_results:
         lines.append(
-            f"- {result.get('label')}: core has zero runtime dependencies; CPU runs without native Aer; passed={result.get('passed')}."
+            f"- {result.get('label')}: core has zero runtime dependencies; CPU and Nature run without native Aer/PySCF; passed={result.get('passed')}."
+        )
+    for result in nature_results:
+        lines.append(
+            f"- Native PySCF {result.get('pyscf_version')} H2 calculation and York CPU execution: passed={result.get('passed')}; energy error={result.get('error')}."
         )
     if not smoke_results:
         lines.append("No functional evidence was produced; inspect failed or skipped jobs.")

@@ -9,6 +9,7 @@ API_VERSION = 1
 GROUPS = {
     "engine": "qiskit_aer_york.engines",
     "integration": "qiskit_aer_york.integrations",
+    "driver": "qiskit_aer_york.drivers",
 }
 INSTALL_HINTS = {
     "statevector": "qiskit-aer-york-core[statevector]",
@@ -17,6 +18,8 @@ INSTALL_HINTS = {
     "cuda": "qiskit-aer-york-core[cuda12]",
     "rocm": "qiskit-aer-york-core[rocm] (plus a compatible CuPy HIP build)",
     "qiskit": "qiskit-aer-york-core[qiskit]",
+    "nature": "qiskit-aer-york-core[nature]",
+    "pyscf": "qiskit-aer-york-pyscf with PySCF in a supported worker environment",
 }
 
 

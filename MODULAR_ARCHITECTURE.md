@@ -15,10 +15,16 @@ optional extras provide equivalent package presets.
 | --- | --- | --- |
 | `qiskit-aer-york-core` / `core` | Registry, lazy dispatch, API negotiation | None; Python standard library only |
 | `qiskit-aer-york-qiskit` / `integrations/qiskit` | Qiskit circuits, BackendV2, jobs, results and primitive adapters | Qiskit and NumPy; Qiskit brings SciPy |
+| `qiskit-aer-york-nature` / `integrations/nature` | Portable molecular data and qubit mapping | Qiskit Nature; no PySCF/Psi4 SDK |
+| `qiskit-aer-york-pyscf` / `drivers/pyscf` | Native or Windows-to-WSL chemistry worker | None by default; PySCF belongs to the selected worker |
 | `qiskit-aer-york-statevector` / `engines/statevector` | Ideal CPU statevector engine | Qiskit integration; no native Aer |
 | `qiskit-aer-york-opencl` / `accelerators/opencl` | OpenCL GPU statevector engine | Qiskit integration and PyOpenCL; vendor driver |
 | `qiskit-aer-york-cupy` / `accelerators/cupy` | CUDA or ROCm GPU statevector engine | Qiskit integration; separately selected CuPy SDK build |
 | `qiskit-aer-york-native` / `engines/native` | Full native Aer methods/noise and existing Aer primitives | Explicitly installs the full `qiskit-aer-york-rev` bundle |
+
+See [Nature/PySCF compatibility](NATURE_COMPATIBILITY.md) for portable integral
+input and the explicit Windows-to-WSL worker. Chemistry runtimes never become
+mandatory dependencies of the core or Nature's mapping integration.
 
 The core wheel contains no C++ sources, native library, circuit framework or SDK.
 Installing an optional integration can still bring its own substantial dependencies.
@@ -121,6 +127,9 @@ my_engine = "my_package:Engine"
 
 [project.entry-points."qiskit_aer_york.integrations"]
 my_framework = "my_package:Integration"
+
+[project.entry-points."qiskit_aer_york.drivers"]
+my_chemistry_driver = "my_package:Driver"
 ```
 
 An engine factory implements `api_version = 1` and `create_backend(**options)`;
@@ -138,12 +147,12 @@ its matrix dependencies out of the core.
 
 ## Validation
 
-`python tools/york_modular_ci.py` builds six independent wheels, inspects their
+`python tools/york_modular_ci.py` builds eight independent wheels, inspects their
 metadata, installs the core alone in a clean environment, then installs the
 light engines in another clean environment without native Aer. It tests CPU
 evolution against independent Qiskit references, sampling, parameter/register
 mapping and Qiskit primitives. Hosted CI runs this on Linux, Windows and macOS;
-it does not claim physical GPU validation.
+it also tests Nature without PySCF and does not claim physical GPU validation.
 
 `tools/york_modular_gpu_smoke.py` requires native Aer to be absent and runs strict
 physical-device reference tests. Install the CPU statevector plugin too for its
