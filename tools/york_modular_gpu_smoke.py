@@ -95,6 +95,24 @@ def main():
     cpu_result = Simulator("statevector").run(measured, shots=32).result()
     assert cpu_result.results[0].metadata["device"] == "CPU"
     checks.append("cpu-plugin-coexistence")
+    repeated = QuantumCircuit(2, 2)
+    for _ in range(50):
+        repeated.h(0)
+        repeated.cx(0, 1)
+    expected = Statevector.from_instruction(repeated).data
+    save_statevector(repeated, "first")
+    save_statevector(repeated, "second")
+    repeated.measure([0, 1], [0, 1])
+    result = backend.run(repeated, shots=128).result()
+    np.testing.assert_allclose(result.data()["first"], expected, atol=tolerance)
+    transfers = result.results[0].metadata
+    if (
+        transfers["matrix_uploads"] != 2
+        or transfers["matrix_upload_hits"] != 98
+        or transfers["host_state_transfers"] != 1
+    ):
+        raise AssertionError(f"GPU transfer reuse was not exercised: {transfers}")
+    checks.append("repeated-gate-and-state-transfer-reuse")
     evidence = {
         "passed": True,
         "native_aer_installed": False,
@@ -105,6 +123,7 @@ def main():
         "checks": checks,
         "max_statevector_error": maximum_error,
         "device": metadata,
+        "transfer_reuse": transfers,
         "available_devices": backend.backend.state_provider.devices(),
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)

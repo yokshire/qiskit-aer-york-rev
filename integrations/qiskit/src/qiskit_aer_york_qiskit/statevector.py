@@ -6,6 +6,7 @@ observable evaluation run on the host. Unsupported semantics fail explicitly.
 """
 
 import copy
+from collections import OrderedDict
 import numbers
 import platform
 import time
@@ -108,9 +109,12 @@ def _bind_circuits(circuits, binds):
             )
 
 
-def _plan(circuit):
+def _plan(circuit, matrices=None, stats=None):
     """Validate the whole circuit before any state allocation or execution."""
     plan = []
+    matrices = OrderedDict() if matrices is None else matrices
+    stats = {} if stats is None else stats
+    stats.update(matrix_validations=0, matrix_validation_hits=0)
     measuring = False
     labels = set()
     for instruction in circuit.data:
@@ -147,10 +151,25 @@ def _plan(circuit):
             matrix = np.asarray(Operator(operation).data, dtype=np.complex128)
         except Exception as exc:
             raise AerError(f"Cannot convert gate {operation.name!r} to a unitary matrix") from exc
-        if not np.all(np.isfinite(matrix)) or not np.allclose(
-            matrix.conj().T @ matrix, np.eye(1 << len(qubits)), atol=1e-10, rtol=1e-10
-        ):
-            raise AerError(f"Instruction {operation.name!r} is not unitary")
+        width = 1 << len(qubits)
+        if matrix.shape != (width, width):
+            raise AerError(f"Instruction {operation.name!r} has an invalid matrix shape")
+        # Key the actual matrix, never the mutable gate name/parameters. Different
+        # custom definitions and parameter values cannot share an incorrect plan.
+        key = (width, matrix.tobytes())
+        if key in matrices:
+            matrix = matrices.pop(key)
+            stats["matrix_validation_hits"] += 1
+        else:
+            if not np.all(np.isfinite(matrix)) or not np.allclose(
+                matrix.conj().T @ matrix, np.eye(width), atol=1e-10, rtol=1e-10
+            ):
+                raise AerError(f"Instruction {operation.name!r} is not unitary")
+            matrix = np.frombuffer(key[1], dtype=np.complex128).reshape(width, width)
+            stats["matrix_validations"] += 1
+        matrices[key] = matrix
+        if len(matrices) > 256:
+            matrices.popitem(last=False)
         plan.append(("gate", qubits, matrix))
     return plan
 
@@ -158,12 +177,15 @@ def _plan(circuit):
 def _execute(backend, provider, circuits, binds, options, job_id):
     started = time.perf_counter()
     bound = list(_bind_circuits(circuits, binds))
-    plans = [_plan(circuit) for circuit in bound]
+    matrices = OrderedDict()
+    plan_stats = [{} for _ in bound]
+    plans = [_plan(circuit, matrices, stats) for circuit, stats in zip(bound, plan_stats)]
+    del matrices
     rng = np.random.default_rng(options.get("seed_simulator"))
     shots = int(options.get("shots", 1024))
     precision = options.get("precision", "double")
     results = []
-    for circuit, plan in zip(bound, plans):
+    for circuit, plan, stats in zip(bound, plans, plan_stats):
         required = 2 * (1 << circuit.num_qubits) * (16 if precision == "double" else 8)
         max_memory = options.get("max_memory_mb")
         if max_memory is not None and required > max_memory * 1024**2:
@@ -175,14 +197,25 @@ def _execute(backend, provider, circuits, binds, options, job_id):
         measurements = []
         gates = 0
         phase = np.exp(1j * float(circuit.global_phase))
+        host_vector = None
+        host_transfers = 0
+
+        def snapshot(current_state=state):
+            nonlocal host_vector, host_transfers
+            if host_vector is None:
+                host_vector = current_state.to_host()
+                host_transfers += 1
+            return host_vector
+
         for action, qubits, payload in plan:
             if action == "gate":
                 state.apply(payload, qubits)
+                host_vector = None
                 gates += 1
             elif action == "measure":
                 measurements.append((qubits[0], payload[0]))
             else:
-                vector = Statevector(state.to_host() * phase)
+                vector = Statevector(snapshot() * phase)
                 if action == "save_statevector":
                     data[payload.label] = vector
                 else:
@@ -194,7 +227,7 @@ def _execute(backend, provider, circuits, binds, options, job_id):
                         )
                     )
         if measurements:
-            vector = state.to_host()
+            vector = snapshot()
             probabilities = np.abs(vector.astype(np.complex128)) ** 2
             norm = probabilities.sum()
             tolerance = 1e-5 if precision == "single" else 1e-10
@@ -224,6 +257,8 @@ def _execute(backend, provider, circuits, binds, options, job_id):
             raise AerError("Plugin did not report execution on the requested device")
         metadata.update(
             {
+                **stats,
+                "host_state_transfers": host_transfers,
                 "engine": backend.engine,
                 "plugin_api": 1,
                 "method": "statevector",
@@ -250,7 +285,7 @@ def _execute(backend, provider, circuits, binds, options, job_id):
             }
         )
         # Release this circuit before the next RHS allocates a new GPU state.
-        del finish, state
+        del finish, state, snapshot, host_vector
     return Result.from_dict(
         {
             "backend_name": backend.name,

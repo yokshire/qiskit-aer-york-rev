@@ -22,7 +22,7 @@ class EngineTests(unittest.TestCase):
         self.assertTrue({"statevector", "opencl", "cuda", "rocm"} <= names)
         for name in ("cupy", "pyopencl", "qiskit_aer"):
             self.assertNotIn(name, sys.modules)
-        self.assertEqual({info.name for info in plugins("integration")}, {"qiskit"})
+        self.assertTrue({"qiskit", "data"} <= {info.name for info in plugins("integration")})
 
     def test_random_circuits_and_target_order(self):
         for precision, tolerance in (("double", 1e-10), ("single", 2e-5)):
@@ -72,6 +72,43 @@ class EngineTests(unittest.TestCase):
         self.assertEqual(set(sampled[0].data.meas.get_counts()), {"00", "11"})
         estimated = integration.estimator(simulator).run([(bell, "ZZ")]).result()
         self.assertAlmostEqual(float(estimated[0].data.evs), 1)
+
+    def test_repeated_matrices_and_host_snapshots_preserve_state(self):
+        circuit = QuantumCircuit(2, 2, global_phase=0.3)
+        for _ in range(50):
+            circuit.h(0)
+            circuit.cx(0, 1)
+        expected = Statevector.from_instruction(circuit)
+        save_statevector(circuit, "first")
+        save_statevector(circuit, "second")
+        circuit.measure([0, 1], [0, 1])
+        result = Simulator().run(circuit, shots=32, seed_simulator=8).result()
+        np.testing.assert_allclose(result.data()["first"], expected.data, atol=1e-12)
+        np.testing.assert_allclose(result.data()["second"], expected.data, atol=1e-12)
+        metadata = result.results[0].metadata
+        self.assertEqual(metadata["matrix_validations"], 2)
+        self.assertEqual(metadata["matrix_validation_hits"], 98)
+        self.assertEqual(metadata["host_state_transfers"], 1)
+        # A gate between saves must invalidate the exported host state.
+        circuit = QuantumCircuit(1)
+        save_statevector(circuit, "before")
+        circuit.x(0)
+        save_statevector(circuit, "after")
+        result = Simulator().run(circuit).result()
+        np.testing.assert_allclose(result.data()["before"], [1, 0])
+        np.testing.assert_allclose(result.data()["after"], [0, 1])
+        self.assertEqual(result.results[0].metadata["host_state_transfers"], 2)
+
+    def test_equal_gate_names_with_different_definitions_do_not_share_matrices(self):
+        first, second = QuantumCircuit(1), QuantumCircuit(1)
+        first.x(0)
+        second.h(0)
+        circuit = QuantumCircuit(1)
+        circuit.append(first.to_gate(label="same"), [0])
+        circuit.append(second.to_gate(label="same"), [0])
+        expected = Statevector.from_instruction(circuit).data
+        save_statevector(circuit)
+        np.testing.assert_allclose(Simulator().run(circuit).result().get_statevector(), expected)
 
     def test_invalid_options_and_unsupported_semantics(self):
         simulator = Simulator()

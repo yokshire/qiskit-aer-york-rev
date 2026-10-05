@@ -15,6 +15,7 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[1]
 PROJECTS = (
     "core",
+    "data",
     "integrations/qiskit",
     "integrations/nature",
     "drivers/pyscf",
@@ -122,6 +123,16 @@ def main():
             "unittest",
             "discover",
             "-s",
+            ROOT / "test/modular/data",
+            "-v",
+            cwd=outside,
+        )
+        run(
+            functional,
+            "-m",
+            "unittest",
+            "discover",
+            "-s",
             ROOT / "test/modular/engines",
             "-v",
             cwd=outside,
@@ -138,8 +149,16 @@ def main():
             "-v",
             cwd=outside,
         )
+        run(
+            functional,
+            ROOT / "tools/york_data_benchmark.py",
+            "--output",
+            ROOT / f"artifacts/data-{args.label}.json",
+            cwd=outside,
+        )
     report = {
         "nature_without_pyscf": True,
+        "array_transport": True,
         "passed": True,
         "core_dependencies": [],
         "native_aer_installed": False,

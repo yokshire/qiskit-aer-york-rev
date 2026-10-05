@@ -14,6 +14,7 @@ optional extras provide equivalent package presets.
 | Distribution / source directory | Installed purpose | Heavy dependencies |
 | --- | --- | --- |
 | `qiskit-aer-york-core` / `core` | Registry, lazy dispatch, API negotiation | None; Python standard library only |
+| `qiskit-aer-york-data` / `data` | Packed molecular arrays, binary transport and mapped reuse | NumPy only |
 | `qiskit-aer-york-qiskit` / `integrations/qiskit` | Qiskit circuits, BackendV2, jobs, results and primitive adapters | Qiskit and NumPy; Qiskit brings SciPy |
 | `qiskit-aer-york-nature` / `integrations/nature` | Portable molecular data and qubit mapping | Qiskit Nature; no PySCF/Psi4 SDK |
 | `qiskit-aer-york-pyscf` / `drivers/pyscf` | Native or Windows-to-WSL chemistry worker | None by default; PySCF belongs to the selected worker |
@@ -25,6 +26,10 @@ optional extras provide equivalent package presets.
 See [Nature/PySCF compatibility](NATURE_COMPATIBILITY.md) for portable integral
 input and the explicit Windows-to-WSL worker. Chemistry runtimes never become
 mandatory dependencies of the core or Nature's mapping integration.
+
+The core's `Toolkit` facade composes optional integrations/drivers and simulators.
+See [data flow and measured optimizations](DATA_FLOW.md) for the packed binary
+PySCF/Nature route, explicit mapped reuse and CPU/GPU transfer caches.
 
 The core wheel contains no C++ sources, native library, circuit framework or SDK.
 Installing an optional integration can still bring its own substantial dependencies.
@@ -147,12 +152,13 @@ its matrix dependencies out of the core.
 
 ## Validation
 
-`python tools/york_modular_ci.py` builds eight independent wheels, inspects their
+`python tools/york_modular_ci.py` builds nine independent wheels, inspects their
 metadata, installs the core alone in a clean environment, then installs the
 light engines in another clean environment without native Aer. It tests CPU
 evolution against independent Qiskit references, sampling, parameter/register
 mapping and Qiskit primitives. Hosted CI runs this on Linux, Windows and macOS;
 it also tests Nature without PySCF and does not claim physical GPU validation.
+Array ownership/transport tests and a reproducible benchmark run on all three OSes.
 
 `tools/york_modular_gpu_smoke.py` requires native Aer to be absent and runs strict
 physical-device reference tests. Install the CPU statevector plugin too for its

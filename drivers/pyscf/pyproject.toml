@@ -12,6 +12,7 @@ license = "Apache-2.0"
 license-files = ["LICENSE.txt"]
 
 [project.optional-dependencies]
+data = ["qiskit-aer-york-data>=0.1,<0.2"]
 # Opt in on a supported OS; Windows controllers use an explicitly configured WSL worker.
 native = ["pyscf>=2.8,<3; platform_system == 'Linux' or platform_system == 'Darwin'"]
 

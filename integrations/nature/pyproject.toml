@@ -7,7 +7,7 @@ name = "qiskit-aer-york-nature"
 version = "0.1.0"
 description = "Optional driver-independent Qiskit Nature integration for York"
 requires-python = ">=3.10"
-dependencies = ["qiskit-aer-york-core>=0.1,<0.2", "qiskit-aer-york-qiskit>=0.1,<0.2", "qiskit-nature>=0.8,<0.9"]
+dependencies = ["qiskit-aer-york-core>=0.1,<0.2", "qiskit-aer-york-data>=0.1,<0.2", "qiskit-aer-york-qiskit>=0.1,<0.2", "qiskit-nature>=0.8,<0.9"]
 license = "Apache-2.0"
 license-files = ["LICENSE.txt"]
 

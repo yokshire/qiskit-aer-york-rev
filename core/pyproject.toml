@@ -12,6 +12,7 @@ license = "Apache-2.0"
 license-files = ["LICENSE.txt"]
 
 [project.optional-dependencies]
+data = ["qiskit-aer-york-data>=0.1,<0.2"]
 statevector = ["qiskit-aer-york-statevector>=0.1,<0.2"]
 qiskit = ["qiskit-aer-york-qiskit>=0.1,<0.2"]
 nature = ["qiskit-aer-york-nature>=0.1,<0.2"]

@@ -14,6 +14,8 @@ from unittest.mock import patch
 from qiskit import QuantumCircuit
 from qiskit_aer_york import PluginError, Simulator, load_plugin, plugins
 from qiskit_aer_york_qiskit import save_statevector
+from qiskit_aer_york_data import IntegralBundle
+import numpy as np
 
 # One spatial orbital: h=-1.5, (11|11)=0.5, constant=0.4.
 # Vacuum, one electron, and two electrons have analytic energies 0.4, -1.1, -2.1.
@@ -73,6 +75,28 @@ class NatureTests(unittest.TestCase):
         with patch("qiskit_aer_york_nature.load_plugin", return_value=fake):
             with self.assertRaisesRegex(PluginError, "format"):
                 nature.from_driver("external")
+
+    def test_binary_integrals_match_analytic_energies_and_preserve_packed_views(self):
+        nature = load_plugin("nature", "integration")
+        data = IntegralBundle(
+            [[-1.5]], [0.5], num_alpha=1, num_beta=1, nuclear_energy=0.4, reference_energy=-2.1
+        )
+        fake = SimpleNamespace(run_integrals=lambda **options: data)
+        with patch("qiskit_aer_york_nature.load_plugin", return_value=fake):
+            problem = nature.from_driver("external")
+        alpha = problem.hamiltonian.electronic_integrals.alpha
+        self.assertTrue(np.shares_memory(alpha["+-"].array, data.h1))
+        self.assertTrue(np.shares_memory(alpha["++--"].array, data.eri_s8))
+        circuit = QuantumCircuit(2)
+        circuit.x(0)
+        circuit.x(1)
+        save_statevector(circuit)
+        vector = Simulator().run(circuit).result().get_statevector()
+        energy = vector.expectation_value(nature.qubit_operator(problem)).real + 0.4
+        self.assertAlmostEqual(energy, -2.1)
+        self.assertAlmostEqual(problem.reference_energy, -2.1)
+        open_shell = IntegralBundle([[-1.5]], [0.5], num_alpha=1, num_beta=0, nuclear_energy=0.4)
+        self.assertEqual(nature.from_integrals(open_shell).num_particles, (1, 0))
 
     def test_native_windows_rejected_before_process_or_sdk_load(self):
         driver = load_plugin("pyscf", "driver")

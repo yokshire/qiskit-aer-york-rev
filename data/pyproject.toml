@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "qiskit-aer-york-data"
+version = "0.1.0"
+description = "Optional packed molecular arrays and portable binary transport for York"
+requires-python = ">=3.10"
+dependencies = ["qiskit-aer-york-core>=0.1,<0.2", "numpy>=1.26,<3"]
+license = "Apache-2.0"
+license-files = ["LICENSE.txt"]
+
+[project.entry-points."qiskit_aer_york.integrations"]
+data = "qiskit_aer_york_data:DataIntegration"
+
+[tool.setuptools.packages.find]
+where = ["src"]

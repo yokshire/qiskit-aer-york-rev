@@ -20,7 +20,7 @@ Psi4 and Gaussian are not installed or implicitly selected.
 No York packages are published yet. Install these local projects together:
 
 ```text
-python -m pip install ./core ./integrations/qiskit ./integrations/nature ./engines/statevector
+python -m pip install ./core ./data ./integrations/qiskit ./integrations/nature ./engines/statevector
 ```
 
 ```python
@@ -56,7 +56,9 @@ problem = nature.from_driver(
 
 Only classical PySCF calculation runs in WSL. Geometry/options travel as JSON
 stdin to `wsl.exe --exec` without shell interpolation; FCIDump/reference energy
-return as JSON stdout. Nature, mapping and simulation continue in Windows.
+can return as JSON for legacy callers. Nature now prefers packed binary arrays
+and constructs its problem directly without temporary integral files. Nature,
+mapping and simulation continue in Windows. See [data transport and reuse](DATA_FLOW.md).
 The worker needs PySCF but no York/Qiskit/Nature installation. The controller
 imports no Linux binaries and needs no cross-OS shared-file path. Worker errors,
 malformed responses and timeouts are reported explicitly. WSL must be usable.
@@ -102,7 +104,8 @@ or native Aer. They compare actual CPU simulation against analytic one-orbital
 vacuum/one-electron/two-electron energies and test lazy discovery and worker errors.
 
 `tools/york_nature_smoke.py` performs a real H2 STO-3G worker calculation, reads
-its integrals locally, and compares York's circuit energy to PySCF's RHF energy.
+binary integrals locally, compares their Hamiltonian with FCIDump, and compares
+York's circuit energy to PySCF's RHF energy. It also checks ROHF spin/energy on H.
 Local Windows-to-WSL testing with PySCF 2.14.0 yielded identical
 `-1.116998996754004` Hartree values while PySCF was absent from Windows.
 CI also checks a native Linux worker. Portable macOS tests do not certify native

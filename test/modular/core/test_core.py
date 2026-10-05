@@ -7,7 +7,14 @@ import sys
 import unittest
 from unittest.mock import Mock, patch
 
-from qiskit_aer_york import Simulator, MissingPluginError, PluginError, load_plugin, plugins
+from qiskit_aer_york import (
+    Simulator,
+    Toolkit,
+    MissingPluginError,
+    PluginError,
+    load_plugin,
+    plugins,
+)
 
 
 class CoreTests(unittest.TestCase):
@@ -78,6 +85,18 @@ class CoreTests(unittest.TestCase):
     def test_unknown_kind_is_explicit(self):
         with self.assertRaisesRegex(ValueError, "Unknown plugin kind"):
             plugins("invalid")
+
+    def test_toolkit_reuses_only_explicit_plugins(self):
+        toolkit = Toolkit()
+        self.assertEqual(toolkit.inventory(), {"engine": (), "integration": (), "driver": ()})
+        with patch("qiskit_aer_york.load_plugin") as load:
+            toolkit.simulator("cuda")
+            load.assert_not_called()
+            first = toolkit.integration("nature")
+            self.assertIs(toolkit.integration("nature"), first)
+            load.assert_called_once_with("nature", "integration")
+            toolkit.molecule("pyscf", atom="H 0 0 0")
+            first.from_driver.assert_called_once_with("pyscf", atom="H 0 0 0")
 
 
 if __name__ == "__main__":

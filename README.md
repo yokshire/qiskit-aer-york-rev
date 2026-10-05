@@ -49,6 +49,11 @@ Windows can use portable FCIDump integrals without a chemistry SDK, or explicitl
 run just the PySCF step in WSL while Nature and York stay native. See
 [Nature/PySCF compatibility and installation](NATURE_COMPATIBILITY.md).
 
+The lightweight `Toolkit` facade connects these plugins. A separate data wheel
+provides packed molecular arrays, binary worker transport and memory-mapped
+reuse; shared circuit execution reduces repeated matrix validation, GPU uploads
+and host state transfers. See [data flow, examples and measurements](DATA_FLOW.md).
+
 ## Existing native Aer bundle
 
 `qiskit-aer-york-rev` remains the optional full CPU bundle and imports as

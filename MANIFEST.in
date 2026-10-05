@@ -14,6 +14,11 @@ include tools/york_nature_smoke.py
 include NATURE_COMPATIBILITY.md
 include MODULAR_ARCHITECTURE.md
 graft core
+graft data
+prune data/build
+prune data/src/qiskit_aer_york_data.egg-info
+include tools/york_data_benchmark.py
+include DATA_FLOW.md
 graft integrations
 graft engines
 graft drivers

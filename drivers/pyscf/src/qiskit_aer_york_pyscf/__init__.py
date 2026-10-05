@@ -34,6 +34,7 @@ class PySCFDriver:
             "native_supported": system in ("Linux", "Darwin"),
             "wsl_available": system == "Windows" and shutil.which("wsl.exe") is not None,
             "format": "fcidump",
+            "formats": ("fcidump", "integrals"),
             "methods": ("RHF", "ROHF"),
         }
 
@@ -50,13 +51,16 @@ class PySCFDriver:
         python=None,
         distribution=None,
         timeout=300,
+        format="fcidump",
     ):
-        """Compute integrals in the chosen worker; return JSON-compatible FCIDump data.
+        """Compute integrals; choose legacy FCIDump or a packed IntegralBundle.
 
         Native Windows PySCF is unsupported. WSL requires an explicit Linux
         Python executable and distribution, with PySCF already installed there.
         The entire molecular request travels as JSON stdin, never shell code.
         """
+        if format not in ("fcidump", "integrals"):
+            raise ValueError("format must be 'fcidump' or 'integrals'")
         if not isinstance(atom, str) or not atom.strip():
             raise ValueError("atom must be a nonempty PySCF molecular geometry string")
         if not isinstance(basis, str) or not basis.strip():
@@ -78,6 +82,20 @@ class PySCFDriver:
         ):
             raise ValueError("timeout must be a finite positive number")
         source = Path(__file__).with_name("_worker.py").read_text(encoding="utf-8")
+        if format == "integrals":
+            # Send the shared encoder with the worker. The remote environment
+            # still needs only PySCF/NumPy, never York or Qiskit packages.
+            try:
+                from qiskit_aer_york_data import IntegralBundle, _wire
+            except ImportError as exc:
+                raise PluginError(
+                    "Packed integrals require qiskit-aer-york-pyscf[data]; install it explicitly."
+                ) from exc
+
+            wire = Path(_wire.__file__).read_text(encoding="utf-8")
+            prefix = "import types, sys\nyork_wire = types.ModuleType('york_wire')\n"
+            prefix += f"exec({wire!r}, york_wire.__dict__)\nsys.modules['york_wire'] = york_wire\n"
+            source = prefix + source
         if runtime == "native":
             if platform.system() not in ("Linux", "Darwin"):
                 raise PluginError(
@@ -111,6 +129,8 @@ class PySCFDriver:
             "spin": int(spin),
             "threads": int(threads),
             "unit": unit,
+            "format": format,
+            "runtime": runtime,
         }
         try:
             process = subprocess.run(
@@ -125,10 +145,18 @@ class PySCFDriver:
             raise PluginError(f"PySCF {runtime} worker exceeded {timeout} seconds") from exc
         except OSError as exc:
             raise PluginError(f"Cannot start PySCF {runtime} worker: {exc}") from exc
-        stdout, stderr = _decode_output(process.stdout), _decode_output(process.stderr)
         if process.returncode:
+            stdout, stderr = _decode_output(process.stdout), _decode_output(process.stderr)
             detail = stderr.strip()[-2000:] or stdout.strip()[-2000:]
             raise PluginError(f"PySCF {runtime} worker failed: {detail}")
+        if format == "integrals":
+            try:
+                return IntegralBundle.from_bytes(process.stdout)
+            except (TypeError, ValueError) as exc:
+                raise PluginError(
+                    f"PySCF {runtime} worker returned invalid integral data: {exc}"
+                ) from exc
+        stdout = _decode_output(process.stdout)
         try:
             result = json.loads(stdout)
         except (TypeError, ValueError) as exc:
@@ -141,3 +169,9 @@ class PySCFDriver:
             raise PluginError("PySCF worker returned an incompatible result schema")
         result["runtime"] = runtime
         return result
+
+    def run_integrals(self, **options):
+        """Optimized portable route; requires the separately installed data plugin."""
+        if "format" in options:
+            raise ValueError("run_integrals selects format='integrals'")
+        return self.run(format="integrals", **options)

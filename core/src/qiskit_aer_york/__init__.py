@@ -12,6 +12,7 @@ GROUPS = {
     "driver": "qiskit_aer_york.drivers",
 }
 INSTALL_HINTS = {
+    "data": "qiskit-aer-york-core[data]",
     "statevector": "qiskit-aer-york-core[statevector]",
     "native-aer": "qiskit-aer-york-core[native]",
     "opencl": "qiskit-aer-york-core[opencl]",
@@ -81,6 +82,41 @@ def load_plugin(name, kind="engine"):
     if getattr(plugin, "api_version", None) != API_VERSION:
         raise PluginError(f"Plugin {name!r} must implement API {API_VERSION}")
     return plugin
+
+
+class Toolkit:
+    """One lazy registry for optional data, molecular drivers and execution engines.
+
+    Constructing a toolkit or inspecting its inventory never loads any SDK.
+    Integrations/drivers are reused within this toolkit; simulators own their
+    independent engine settings and jobs. No implicit installation or fallback.
+    """
+
+    def __init__(self):
+        self._plugins = {}
+        self._lock = threading.RLock()
+
+    def inventory(self):
+        return {kind: plugins(kind) for kind in GROUPS}
+
+    def _plugin(self, name, kind):
+        with self._lock:
+            key = (kind, name)
+            if key not in self._plugins:
+                self._plugins[key] = load_plugin(name, kind)
+            return self._plugins[key]
+
+    def integration(self, name):
+        return self._plugin(name, "integration")
+
+    def driver(self, name):
+        return self._plugin(name, "driver")
+
+    def simulator(self, engine="statevector", **options):
+        return Simulator(engine, **options)
+
+    def molecule(self, driver="pyscf", **options):
+        return self.integration("nature").from_driver(driver, **options)
 
 
 class Simulator:

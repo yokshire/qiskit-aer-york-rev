@@ -2,6 +2,7 @@
 """Explicit CuPy CUDA/HIP providers sharing a portable GPU unitary kernel."""
 
 import numpy as np
+from collections import OrderedDict
 
 KERNEL = r"""
 typedef {real} real_t;
@@ -110,11 +111,16 @@ class _State:
         self.device = cp.cuda.Device(int(metadata["device_id"]))
         self.dtype = np.complex128 if precision == "double" else np.complex64
         self.size = 1 << num_qubits
+        self._matrices = OrderedDict()
+        self.metadata = dict(metadata, matrix_uploads=0, matrix_upload_hits=0)
         with self.device:
             free, _ = cp.cuda.runtime.memGetInfo()
             free += cp.get_default_memory_pool().free_bytes()
-            if 2 * self.size * np.dtype(self.dtype).itemsize + 4096 > free:
+            required = 2 * self.size * np.dtype(self.dtype).itemsize
+            if required + 4112 > free:
                 raise MemoryError("Statevector exceeds selected GPU free memory")
+            # At most 32 small gate/target buffers, further limited by free memory.
+            self._cache_limit = min(32, max(1, (free - required) // 4112))
             initial = np.zeros(self.size, dtype=self.dtype)
             initial[0] = 1
             self.current = cp.asarray(initial)
@@ -125,8 +131,18 @@ class _State:
 
     def apply(self, matrix, qubits):
         with self.device:
-            matrix = self.cp.asarray(matrix, dtype=self.dtype)
-            targets = self.cp.asarray(qubits, dtype=self.cp.int32)
+            host = np.ascontiguousarray(matrix, dtype=self.dtype)
+            key = (tuple(qubits), host.shape, host.tobytes())
+            if key in self._matrices:
+                matrix, targets = self._matrices.pop(key)
+                self.metadata["matrix_upload_hits"] += 1
+            else:
+                if len(self._matrices) >= self._cache_limit:
+                    self._matrices.popitem(last=False)
+                matrix = self.cp.asarray(host, dtype=self.dtype)
+                targets = self.cp.asarray(qubits, dtype=self.cp.int32)
+                self.metadata["matrix_uploads"] += 1
+            self._matrices[key] = (matrix, targets)
             self.kernel(
                 ((self.size + 127) // 128,),
                 (128,),
