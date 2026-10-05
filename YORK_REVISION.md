@@ -31,7 +31,8 @@ deterministic testing/reporting, **not** an AI code review.
 
 `York Compatibility and Review` runs on:
 
-- Every day at **00:00 and 12:00 Asia/Seoul** (`03:00/15:00 UTC`).
+- Every **3 hours**, at **00:00, 03:00, 06:00, 09:00, 12:00, 15:00, 18:00,
+  and 21:00 Asia/Seoul**. The UTC schedule uses the same three-hour boundaries.
 - Pushes to `main` and pull requests targeting `main`.
 - Manual **Run workflow** requests.
 
@@ -105,6 +106,26 @@ libraries. The helper does not install system packages or compilers. This is
 a development wheel for the build platform, not a portable release wheel.
 Existing Aer APIs/imports and simulation methods are retained. IBM Runtime is
 installed for verification only; the package itself does not require it.
+
+## Active maintenance
+
+A separate Codex scheduled task returns to the existing project chat every
+three hours. It checks new stable releases, upstream changes, York issues and
+reviews, and CI evidence. Reproducible compatibility failures, GPU packaging
+or execution bugs, functional regressions, and missing regression coverage
+can be repaired with focused tests on a York maintenance branch and submitted
+as a pull request. No change is required when there is no concrete problem.
+
+Maintenance preserves the Aer API, licenses, attribution, and AI disclosure.
+New user-facing features, public API changes, large refactors, and upstream
+synchronization require a concrete proposal and user decision. The task does
+not directly update `main`, merge pull requests, publish releases, or perform
+paid QPU calls. The two upstream PR branches and their separate monitor remain
+untouched. Only meaningful findings, completed fixes, and decisions are reported.
+
+This local maintenance task requires the computer and Codex desktop app to
+remain running, with the project available. GitHub compatibility checks run
+independently. See the [scheduled-task documentation](https://learn.chatgpt.com/docs/automations).
 
 ## Optional GPU execution boundary
 
