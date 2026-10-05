@@ -50,7 +50,8 @@ fi
 wheel="${wheel_files[0]}"
 "$runtime_python" -m pip install --upgrade pip
 # One resolver invocation with exact versions prevents an older Qiskit fallback.
-"$runtime_python" -m pip install "$wheel" "qiskit==$qiskit_version" "qiskit-ibm-runtime==$runtime_version"
+# packaging is a smoke-test dependency, not an added Aer runtime requirement.
+"$runtime_python" -m pip install "$wheel" "qiskit==$qiskit_version" "qiskit-ibm-runtime==$runtime_version" 'packaging>=24,<27'
 "$runtime_python" -m pip check
 "$runtime_python" -m pip freeze > artifacts/installed-versions.txt
 if [[ "$build_kind" == gpu ]]; then
