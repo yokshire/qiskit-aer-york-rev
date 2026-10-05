@@ -88,7 +88,9 @@ env -u LD_LIBRARY_PATH /path/to/venv/bin/python -I \
 For a local build, provide the same system development libraries as the
 workflow (`libopenblas-dev`, `libspdlog-dev`, `nlohmann-json3-dev`, and
 `libthrust-dev` for CPU), an appropriate compiler, and a CUDA 12 toolkit for
-GPU. The script creates `.venv-york` and builds a development wheel:
+GPU. The script creates separate `.venv-york-build` and `.venv-york` environments
+and builds a development wheel. Conan 1.x's build-only `urllib3<1.27` dependency
+must not be mixed with current IBM Runtime's `urllib3>=2.4` dependency:
 
 ```bash
 bash tools/york_build.sh cpu <exact-qiskit-version> <exact-runtime-version> local

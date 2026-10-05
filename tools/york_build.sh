@@ -8,12 +8,13 @@ qiskit_version="${2:?exact Qiskit version}"
 runtime_version="${3:?exact Runtime version}"
 evidence_label="${4:-$build_kind}"
 workspace="$(pwd)"
+python -m venv .venv-york-build
 python -m venv .venv-york
-export PATH="$workspace/.venv-york/bin:$PATH"
+runtime_python="$workspace/.venv-york/bin/python"
+export PATH="$workspace/.venv-york-build/bin:$PATH"
 python -m pip install --upgrade pip
 python -m pip install -r tools/york-build-requirements.txt
-# Exact versions prevent pip from quietly selecting an older compatible Qiskit.
-python -m pip install "qiskit==$qiskit_version" "qiskit-ibm-runtime==$runtime_version" psutil python-dateutil
+# Conan 1.x's urllib3 pin must never contaminate the Runtime execution environment.
 
 export CMAKE_ARGS="-DDISABLE_CONAN=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
 export CMAKE_BUILD_PARALLEL_LEVEL="${CMAKE_BUILD_PARALLEL_LEVEL:-2}"
@@ -23,7 +24,7 @@ if [[ "$build_kind" == gpu ]]; then
     export QISKIT_ADD_CUDA_REQUIREMENTS=true
     export AER_THRUST_BACKEND=CUDA
     export AER_CUDA_ARCH=8.6
-    export AER_PYTHON_CUDA_ROOT="$workspace/.venv-york"
+    export AER_PYTHON_CUDA_ROOT="$workspace/.venv-york-build"
     export CMAKE_BUILD_PARALLEL_LEVEL=1
     export CUDACXX="${CUDACXX:-/usr/local/cuda/bin/nvcc}"
     python -m pip install \
@@ -47,9 +48,11 @@ if [[ ${#wheel_files[@]} != 1 ]]; then
     exit 1
 fi
 wheel="${wheel_files[0]}"
-python -m pip install --no-deps "$wheel"
-python -m pip check
-python -m pip freeze > artifacts/installed-versions.txt
+"$runtime_python" -m pip install --upgrade pip
+# One resolver invocation with exact versions prevents an older Qiskit fallback.
+"$runtime_python" -m pip install "$wheel" "qiskit==$qiskit_version" "qiskit-ibm-runtime==$runtime_version"
+"$runtime_python" -m pip check
+"$runtime_python" -m pip freeze > artifacts/installed-versions.txt
 if [[ "$build_kind" == gpu ]]; then
     python tools/york_ci.py check-wheel "$wheel" --gpu > artifacts/gpu-wheel.json
     compilation_database="$(find _skbuild -name compile_commands.json -print -quit)"

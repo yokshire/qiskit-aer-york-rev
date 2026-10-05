@@ -33,6 +33,7 @@ test/.asv
 .stestr/
 artifacts/
 .venv-york/
+.venv-york-build/
 
 docs/_build/
 docs/stubs/
