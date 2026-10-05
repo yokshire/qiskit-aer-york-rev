@@ -98,7 +98,7 @@ setup(
     version=VERSION,
     packages=setuptools.find_packages(exclude=["test*"]),
     cmake_source_dir=".",
-    description="Unofficial York revision of Aer for Qiskit and CUDA GPU compatibility",
+    description="General-purpose York revision of Aer for Qiskit circuit simulation",
     long_description=README,
     long_description_content_type="text/markdown",
     url="https://github.com/yokshire/qiskit-aer-york-rev",

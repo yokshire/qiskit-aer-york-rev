@@ -3,19 +3,64 @@
 [![Compatibility and review](https://github.com/yokshire/qiskit-aer-york-rev/actions/workflows/york-compatibility.yml/badge.svg)](https://github.com/yokshire/qiskit-aer-york-rev/actions/workflows/york-compatibility.yml)
 
 An **unofficial, independently maintained customization** of Qiskit Aer,
-focused on CUDA GPU packaging and compatibility with current stable Qiskit.
+for **general-purpose quantum circuit simulation**, maintained for compatibility
+with current stable Qiskit and optional IBM Runtime local mode.
 It is not an IBM/Qiskit-endorsed release.
 
-- CPU distribution: `qiskit-aer-york-rev`.
-- CUDA 12 distribution: `qiskit-aer-york-rev-gpu`.
+- Default distribution: **`qiskit-aer-york-rev`**, running on CPU without a GPU,
+  CUDA toolkit, NVIDIA driver, or accelerator Python packages.
+- Optional acceleration: `qiskit-aer-york-rev-gpu` is a separate CUDA 12 build.
+  Installing CUDA libraries alone does not turn a CPU wheel into a GPU wheel.
 - Python imports remain `qiskit_aer`; use a dedicated virtual environment.
   Do not install this together with `qiskit-aer` or `qiskit-aer-gpu`.
 - No York wheel has been published to PyPI or GitHub Releases yet.
 - Automated checks are smoke/regression checks, not a claim of exhaustive
   compatibility. A green hosted CI run does **not** prove GPU execution.
 
-See [York maintenance and automation](YORK_REVISION.md) for the schedule,
-scope, build instructions, and GPU validation limitations.
+The CPU version includes Aer's statevector, density-matrix, stabilizer,
+extended-stabilizer, matrix-product-state, unitary, and superoperator methods,
+noise models, and SamplerV2/EstimatorV2. Tensor-network GPU acceleration and MPI
+remain optional build capabilities. IBM Runtime is needed only for Runtime
+integration; it is not a dependency of the default package.
+
+## Use the default simulator
+
+After installing a locally built CPU wheel into a fresh virtual environment:
+
+```python
+from qiskit import QuantumCircuit, transpile
+from qiskit_aer import AerSimulator
+
+circuit = QuantumCircuit(2)
+circuit.h(0)
+circuit.cx(0, 1)
+circuit.measure_all()
+
+simulator = AerSimulator()  # CPU is the default; no GPU is required.
+result = simulator.run(transpile(circuit, simulator), shots=1024).result()
+print(result.get_counts())
+```
+
+## Build and verify from source
+
+There is no published York package to install from PyPI yet. In a **clean source
+checkout**, with Python 3.10+ and the platform's C++ compiler and development
+libraries installed, the same CPU build command works on Linux, macOS, and Windows:
+
+```text
+python tools/york_build.py --qiskit <exact-qiskit-version> --runtime <exact-runtime-version>
+```
+
+The helper builds `qiskit-aer-york-rev` without accelerator dependencies and
+verifies the installed wheel in an isolated environment. Runtime is installed
+in that verification environment to check local integration. Build requirements
+remain separate from simulation requirements.
+
+Linux CI tests Python 3.10–3.14 and the latest stable Python; Windows and macOS
+CI test Python 3.12. All use exact current stable Qiskit and Runtime releases.
+These are tested matrix entries, not a promise of every OS/CPU/Python combination.
+See [York maintenance and automation](YORK_REVISION.md) for platform prerequisites,
+the schedule, build instructions, and optional GPU validation.
 
 ## Original upstream documentation
 

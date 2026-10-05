@@ -8,6 +8,12 @@ qiskit_version="${2:?exact Qiskit version}"
 runtime_version="${3:?exact Runtime version}"
 evidence_label="${4:-$build_kind}"
 workspace="$(pwd)"
+if [[ "$build_kind" == cpu ]]; then
+    exec python tools/york_build.py --qiskit "$qiskit_version" --runtime "$runtime_version" --label "$evidence_label"
+elif [[ "$build_kind" != gpu ]]; then
+    printf 'Unknown build kind: %s\n' "$build_kind" >&2
+    exit 2
+fi
 python -m venv .venv-york-build
 python -m venv .venv-york
 runtime_python="$workspace/.venv-york/bin/python"
@@ -31,13 +37,6 @@ if [[ "$build_kind" == gpu ]]; then
         'nvidia-cuda-runtime-cu12>=12.1.105' nvidia-nvjitlink-cu12 \
         'nvidia-cublas-cu12>=12.1.3.1' 'nvidia-cusolver-cu12>=11.4.5.107' \
         'nvidia-cusparse-cu12>=12.1.0.106' 'cuquantum-cu12>=23.3.0,<24.11.0'
-elif [[ "$build_kind" == cpu ]]; then
-    export QISKIT_AER_PACKAGE_NAME=qiskit-aer-york-rev
-    export AER_THRUST_BACKEND=OMP
-    export QISKIT_ADD_CUDA_REQUIREMENTS=false
-else
-    printf 'Unknown build kind: %s\n' "$build_kind" >&2
-    exit 2
 fi
 
 python -m build --wheel --no-isolation --outdir artifacts/wheels
@@ -61,11 +60,4 @@ if [[ "$build_kind" == gpu ]]; then
     python tools/verify_cuda_compilation.py "$compilation_database"
     python tools/verify_cuda_wheel.py "$wheel"
     printf 'CUDA packaging checks passed; physical GPU execution was NOT performed.\n'
-else
-    python tools/york_ci.py check-wheel "$wheel" > artifacts/cpu-wheel.json
-    # -I and a different cwd ensure the installed extension is tested, not the source tree.
-    cd "${RUNNER_TEMP:-/tmp}"
-    env -u LD_LIBRARY_PATH "$workspace/.venv-york/bin/python" -I \
-        "$workspace/tools/york_smoke.py" --device CPU \
-        --output "$workspace/artifacts/smoke-$evidence_label.json"
 fi
