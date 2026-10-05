@@ -6,6 +6,15 @@ include tools/york_build.sh
 include tools/york-build-requirements.txt
 include tools/york_ci.py
 include tools/york_smoke.py
+include tools/york_plugin_ci.py
+include tools/york_accelerator_smoke.py
+graft accelerators
+prune accelerators/opencl/build
+prune accelerators/cupy/build
+prune accelerators/opencl/src/qiskit_aer_york_opencl.egg-info
+prune accelerators/cupy/src/qiskit_aer_york_cupy.egg-info
+global-exclude *.py[cod]
+graft test/accelerators
 include pyproject.toml
 recursive-include qiskit_aer *cpp
 recursive-include qiskit_aer *hpp
