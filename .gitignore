@@ -39,4 +39,9 @@ docs/_build/
 docs/stubs/
 docs/api/
 accelerators/*/build/
+core/build/
+data/build/
+integrations/*/build/
+drivers/*/build/
+engines/*/build/
 

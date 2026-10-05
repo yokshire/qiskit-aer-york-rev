@@ -2,6 +2,7 @@
 """Native Windows/Linux OpenCL execution on NVIDIA, AMD and Intel GPUs."""
 
 import numpy as np
+from collections import OrderedDict
 
 KERNEL = r"""
 {extension}
@@ -99,15 +100,29 @@ class OpenCLProvider:
         return _State(self.cl, device, self._info(device_id, device), num_qubits, precision)
 
 
+class OpenCLEngine:
+    """Core engine factory; the full Aer native bundle is optional."""
+
+    api_version = 1
+
+    def create_backend(self, **options):
+        from qiskit_aer_york_qiskit import StatevectorBackend
+
+        return StatevectorBackend(OpenCLProvider(), engine="opencl", device="GPU", **options)
+
+
 class _State:
     def __init__(self, cl, device, metadata, num_qubits, precision):
         self.cl = cl
         self.metadata = metadata
         self.dtype = np.complex128 if precision == "double" else np.complex64
         self.size = 1 << num_qubits
+        self._matrices = OrderedDict()
+        self.metadata = dict(metadata, matrix_uploads=0, matrix_upload_hits=0)
         size_bytes = self.size * np.dtype(self.dtype).itemsize
-        if size_bytes > device.max_mem_alloc_size or 2 * size_bytes + 4096 > device.global_mem_size:
+        if size_bytes > device.max_mem_alloc_size or 2 * size_bytes + 4112 > device.global_mem_size:
             raise MemoryError("Statevector exceeds selected GPU memory limits")
+        self._cache_limit = min(32, max(1, (device.global_mem_size - 2 * size_bytes) // 4112))
         self.context = cl.Context([device])
         self.queue = cl.CommandQueue(self.context)
         extension = "#pragma OPENCL EXTENSION cl_khr_fp64 : enable" if precision == "double" else ""
@@ -129,8 +144,17 @@ class _State:
         matrix = np.ascontiguousarray(matrix, dtype=self.dtype)
         qubits_array = np.asarray(qubits, dtype=np.int32)
         flags = cl.mem_flags.READ_ONLY | cl.mem_flags.COPY_HOST_PTR
-        matrix_buffer = cl.Buffer(self.context, flags, hostbuf=matrix)
-        qubits_buffer = cl.Buffer(self.context, flags, hostbuf=qubits_array)
+        key = (tuple(qubits), matrix.shape, matrix.tobytes())
+        if key in self._matrices:
+            matrix_buffer, qubits_buffer = self._matrices.pop(key)
+            self.metadata["matrix_upload_hits"] += 1
+        else:
+            if len(self._matrices) >= self._cache_limit:
+                self._matrices.popitem(last=False)
+            matrix_buffer = cl.Buffer(self.context, flags, hostbuf=matrix)
+            qubits_buffer = cl.Buffer(self.context, flags, hostbuf=qubits_array)
+            self.metadata["matrix_uploads"] += 1
+        self._matrices[key] = (matrix_buffer, qubits_buffer)
         self.kernel(
             self.queue,
             (self.size,),

@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "qiskit-aer-york-core"
+version = "0.1.0"
+description = "Dependency-free simulator plugin discovery and dispatch for York"
+requires-python = ">=3.10"
+dependencies = []
+license = "Apache-2.0"
+license-files = ["LICENSE.txt"]
+
+[project.optional-dependencies]
+data = ["qiskit-aer-york-data>=0.1,<0.2"]
+statevector = ["qiskit-aer-york-statevector>=0.1,<0.2"]
+qiskit = ["qiskit-aer-york-qiskit>=0.1,<0.2"]
+nature = ["qiskit-aer-york-nature>=0.1,<0.2"]
+native = ["qiskit-aer-york-native>=0.1,<0.2"]
+opencl = ["qiskit-aer-york-opencl>=0.2,<0.3"]
+cuda12 = ["qiskit-aer-york-cupy[cuda12]>=0.2,<0.3"]
+rocm = ["qiskit-aer-york-cupy>=0.2,<0.3"]
+
+[tool.setuptools.packages.find]
+where = ["src"]

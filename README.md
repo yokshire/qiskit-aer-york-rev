@@ -2,94 +2,77 @@
 
 [![Compatibility and review](https://github.com/yokshire/qiskit-aer-york-rev/actions/workflows/york-compatibility.yml/badge.svg)](https://github.com/yokshire/qiskit-aer-york-rev/actions/workflows/york-compatibility.yml)
 
-An **unofficial, independently maintained customization** of Qiskit Aer,
-for **general-purpose quantum circuit simulation**, maintained for compatibility
-with current stable Qiskit and optional IBM Runtime local mode.
-It is not an IBM/Qiskit-endorsed release.
+An unofficial independent customization of Qiskit Aer, now organized around a
+**dependency-free core and separately installed engines/integrations**. It is
+not an IBM/Qiskit-endorsed release. No York package is published to PyPI yet.
 
-- Default distribution: **`qiskit-aer-york-rev`**, running on CPU without a GPU,
-  CUDA toolkit, NVIDIA driver, or accelerator Python packages.
-- Optional acceleration: independently installed OpenCL and CUDA/ROCm plugins
-  extend the CPU package. NVIDIA CUDA and NVIDIA/Intel OpenCL execution work
-  natively on Windows. See [plugin installation and limits](accelerators/README.md).
-  The older `qiskit-aer-york-rev-gpu` is a standalone native CUDA build.
-- Python imports remain `qiskit_aer`; use a dedicated virtual environment.
-  Do not install this together with `qiskit-aer` or `qiskit-aer-gpu`.
-- No York wheel has been published to PyPI or GitHub Releases yet.
-- Automated checks are smoke/regression checks, not a claim of exhaustive
-  compatibility. A green hosted CI run does **not** prove GPU execution.
+Install only the registry and lazy dispatcher first:
 
-The CPU version includes Aer's statevector, density-matrix, stabilizer,
-extended-stabilizer, matrix-product-state, unitary, and superoperator methods,
-noise models, and SamplerV2/EstimatorV2. Tensor-network GPU acceleration and MPI
-remain optional build capabilities. IBM Runtime is needed only for Runtime
-integration; it is not a dependency of the default package.
+```text
+python -m pip install ./core
+```
 
-## Use the default simulator
+This installs `qiskit-aer-york-core` and the `qiskit_aer_york` namespace, with
+**zero mandatory runtime dependencies**. Qiskit, NumPy, SciPy, native Aer, CPU
+simulation code and GPU SDKs are absent from this default installation.
 
-After installing a locally built CPU wheel into a fresh virtual environment:
+Add the functionality you need, for example ideal CPU circuit simulation:
+
+```text
+python -m pip install ./core ./integrations/qiskit ./engines/statevector
+```
 
 ```python
-from qiskit import QuantumCircuit, transpile
-from qiskit_aer import AerSimulator
+from qiskit import QuantumCircuit
+from qiskit_aer_york import Simulator
 
 circuit = QuantumCircuit(2)
 circuit.h(0)
 circuit.cx(0, 1)
 circuit.measure_all()
-
-simulator = AerSimulator()  # CPU is the default; no GPU is required.
-result = simulator.run(transpile(circuit, simulator), shots=1024).result()
-print(result.get_counts())
+print(Simulator("statevector").run(circuit, shots=1024).result().get_counts())
 ```
 
-## Build and verify from source
+Qiskit integration, CPU statevector, OpenCL GPU, CUDA/ROCm GPU and the full
+native Aer bridge are independent wheels. GPU engines run **without installing
+the full Aer CPU bundle**. Windows/Linux/macOS core and ideal CPU execution use
+the same API; GPU support depends on the selected runtime and driver.
 
-There is no published York package to install from PyPI yet. In a **clean source
-checkout**, with Python 3.10+ and the platform's C++ compiler and development
-libraries installed, the same CPU build command works on Linux, macOS, and Windows:
+See [package boundaries, installation and extension API](MODULAR_ARCHITECTURE.md)
+and [GPU runtime/hardware support](accelerators/README.md). The native plugin
+still installs the complete C++ Aer bundle when explicitly selected; its methods
+are not yet individually distributed. Unsupported ideal-engine operations
+fail explicitly and do not select another engine automatically.
+
+Qiskit Nature data/mapping and PySCF calculation are separate optional plugins.
+Windows can use portable FCIDump integrals without a chemistry SDK, or explicitly
+run just the PySCF step in WSL while Nature and York stay native. See
+[Nature/PySCF compatibility and installation](NATURE_COMPATIBILITY.md).
+
+The lightweight `Toolkit` facade connects these plugins. A separate data wheel
+provides packed molecular arrays, binary worker transport and memory-mapped
+reuse; shared circuit execution reduces repeated matrix validation, GPU uploads
+and host state transfers. See [data flow, examples and measurements](DATA_FLOW.md).
+
+## Existing native Aer bundle
+
+`qiskit-aer-york-rev` remains the optional full CPU bundle and imports as
+`qiskit_aer`. It includes Aer's simulation methods, noise models and Aer
+primitives. Use a dedicated environment; it must not coexist with upstream
+`qiskit-aer` or `qiskit-aer-gpu`. IBM Runtime is optional.
+
+In a clean source checkout with the platform's C++ compiler and development
+libraries installed, build and verify that bundle using:
 
 ```text
 python tools/york_build.py --qiskit <exact-qiskit-version> --runtime <exact-runtime-version>
 ```
 
-The helper builds `qiskit-aer-york-rev` without accelerator dependencies and
-verifies the installed wheel in an isolated environment. Runtime is installed
-in that verification environment to check local integration. Build requirements
-remain separate from simulation requirements.
-
-Linux CI tests Python 3.10–3.14 and the latest stable Python; Windows and macOS
-CI test Python 3.12. All use exact current stable Qiskit and Runtime releases.
-These are tested matrix entries, not a promise of every OS/CPU/Python combination.
-See [York maintenance and automation](YORK_REVISION.md) for platform prerequisites,
-the schedule, build instructions, and optional GPU validation.
-
-## Add an accelerator plugin
-
-With the new York CPU wheel installed, install `./accelerators/opencl` from
-this checkout into the same environment and keep your GPU vendor driver current:
-
-```text
-python -m pip install ./accelerators/opencl
-```
-
-```python
-from qiskit_aer import AerSimulator
-
-# Choose 'nvidia', 'amd', or 'intel'; Intel GPUs without FP64 need 'single'.
-simulator = AerSimulator(
-    accelerator="opencl",
-    accelerator_options={"vendor": "intel"},
-    precision="single",
-)
-result = simulator.run(circuit, shots=1024).result()
-```
-
-These first plugins support ideal statevector evolution and terminal sampling,
-including Aer SamplerV2/EstimatorV2. Noise, reset, intermediate measurements,
-other simulation methods, and CUDA-specific Aer tuning options fail explicitly.
-Full CPU Aer remains available in the same environment and process. AMD/ROCm
-hardware validation is outstanding; see the [support matrix](accelerators/README.md).
+The existing native build matrix covers Linux Python 3.10–3.14/latest stable,
+Windows and macOS Python 3.12. Separate clean-install tests verify the modular
+core and ideal engine without native Aer on all three operating systems.
+A green hosted CI run does not prove GPU execution. See
+[York maintenance and automation](YORK_REVISION.md) for evidence and prerequisites.
 
 ## Original upstream documentation
 

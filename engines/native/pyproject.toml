@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "qiskit-aer-york-native"
+version = "0.1.0"
+description = "Explicit opt-in bridge to the full York Aer native engine bundle"
+requires-python = ">=3.10"
+dependencies = ["qiskit-aer-york-core>=0.1,<0.2", "qiskit-aer-york-rev>=0.17.2.post2.dev0,<0.18"]
+license = "Apache-2.0"
+license-files = ["LICENSE.txt"]
+
+[project.entry-points."qiskit_aer_york.engines"]
+native-aer = "qiskit_aer_york_native:NativeAerEngine"
+
+[tool.setuptools.packages.find]
+where = ["src"]

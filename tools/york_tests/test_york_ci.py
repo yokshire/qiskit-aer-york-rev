@@ -34,6 +34,73 @@ class YorkCITests(unittest.TestCase):
                 },
             )
         CI.write_json(path / "gpu-wheel.json", {"name": "qiskit-aer-york-rev-gpu"})
+        for label in ("ubuntu-24.04", "windows-2022", "macos-14"):
+            CI.write_json(
+                path / f"modular-{label}.json",
+                {
+                    "passed": True,
+                    "label": label,
+                    "core_dependencies": [],
+                    "native_aer_installed": False,
+                    "nature_without_pyscf": True,
+                    "array_transport": True,
+                },
+            )
+
+        CI.write_json(
+            path / "nature-native.json",
+            {
+                "passed": True,
+                "runtime": "native",
+                "native_aer_installed": False,
+                "array_transport": True,
+                "binary_matches_fcidump": True,
+                "rohf_spin_verified": True,
+            },
+        )
+        for system in ("Linux", "Windows", "Darwin"):
+            CI.write_json(
+                path / f"data-{system}.json",
+                {"passed": True, "platform_system": system, "array_views_share_payload": True},
+            )
+
+    def test_missing_array_evidence_is_not_a_pass(self):
+        needs = {
+            name: {"result": "success"}
+            for name in (
+                "inventory",
+                "static-review",
+                "modular-install",
+                "nature-driver",
+                "cpu-compatibility",
+                "cpu-portability",
+                "cuda-wheel",
+            )
+        }
+        with tempfile.TemporaryDirectory() as temporary:
+            self.successful_evidence(temporary)
+            path = Path(temporary)
+            (path / "data-Windows.json").unlink()
+            self.assertFalse(CI.make_report(path, needs)["passed"])
+
+    def test_missing_modular_install_evidence_is_not_a_pass(self):
+        needs = {
+            name: {"result": "success"}
+            for name in (
+                "inventory",
+                "static-review",
+                "modular-install",
+                "nature-driver",
+                "cpu-compatibility",
+                "cpu-portability",
+                "cuda-wheel",
+            )
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            self.successful_evidence(directory)
+            path = Path(directory)
+            (path / "modular-windows-2022.json").unlink()
+            self.assertFalse(CI.make_report(path, needs)["passed"])
 
     def test_stable_selection_excludes_prerelease_yanked_and_empty(self):
         releases = {
@@ -79,6 +146,8 @@ class YorkCITests(unittest.TestCase):
             for name in (
                 "inventory",
                 "static-review",
+                "modular-install",
+                "nature-driver",
                 "cpu-compatibility",
                 "cpu-portability",
                 "cuda-wheel",
@@ -103,6 +172,8 @@ class YorkCITests(unittest.TestCase):
             for name in (
                 "inventory",
                 "static-review",
+                "modular-install",
+                "nature-driver",
                 "cpu-compatibility",
                 "cpu-portability",
                 "cuda-wheel",
@@ -120,6 +191,8 @@ class YorkCITests(unittest.TestCase):
             for name in (
                 "inventory",
                 "static-review",
+                "modular-install",
+                "nature-driver",
                 "cpu-compatibility",
                 "cpu-portability",
                 "cuda-wheel",
@@ -134,6 +207,8 @@ class YorkCITests(unittest.TestCase):
             for name in (
                 "inventory",
                 "static-review",
+                "modular-install",
+                "nature-driver",
                 "cpu-compatibility",
                 "cpu-portability",
                 "cuda-wheel",
@@ -162,6 +237,8 @@ class YorkCITests(unittest.TestCase):
             for name in (
                 "inventory",
                 "static-review",
+                "modular-install",
+                "nature-driver",
                 "cpu-compatibility",
                 "cpu-portability",
                 "cuda-wheel",
