@@ -78,6 +78,10 @@ jobs:
       OMP_NUM_THREADS: '2'
       OPENBLAS_NUM_THREADS: '2'
       CMAKE_BUILD_PARALLEL_LEVEL: '2'
+      # Python 3.15 + Qiskit 2.6 can exhaust the hosted runner's static TLS
+      # before the installed York extension loads libgomp. Set this at process
+      # startup; do not preload libraries or change the package's import order.
+      GLIBC_TUNABLES: glibc.rtld.optional_static_tls=4096
       QISKIT_VERSION: ${{ needs.inventory.outputs.qiskit }}
       RUNTIME_VERSION: ${{ needs.inventory.outputs.runtime }}
       EVIDENCE_LABEL: ${{ matrix.python }}

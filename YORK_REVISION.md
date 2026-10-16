@@ -69,6 +69,15 @@ not incorrectly attributed to a York patch regression. Unsupported Python
 requirements, install/build errors, and failed runtime checks remain visible
 as failed jobs rather than being hidden as successful compatibility.
 
+The hosted Linux CPU jobs reserve extra glibc static TLS with
+`GLIBC_TUNABLES=glibc.rtld.optional_static_tls=4096` before Python starts.
+Python 3.15 with Qiskit 2.6 can otherwise fail to import the installed York
+extension with `libgomp.so.1: cannot allocate memory in static TLS block`.
+This is an execution-environment workaround, not a change to Aer imports or
+proof that a wheel works without it. If the same error occurs locally, set
+the variable when launching the isolated Python process; changing it after
+Python starts is too late. CUDA packaging checks do not use this workaround.
+
 ## Active maintenance
 
 A separate Codex scheduled task returns to the existing project chat every
