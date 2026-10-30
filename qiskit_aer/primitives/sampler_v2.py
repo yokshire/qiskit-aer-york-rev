@@ -41,6 +41,7 @@ from qiskit.primitives.primitive_job import PrimitiveJob
 from qiskit.result import Result
 
 from qiskit_aer import AerSimulator
+from qiskit_aer.aererror import AerError
 
 
 @dataclass
@@ -163,14 +164,16 @@ class SamplerV2(BaseSamplerV2):
         for key in ["shots", "parameter_binds", "memory"]:
             if key in run_options:
                 del run_options[key]
-        if self._seed is not None and "seed_simulator" in run_options:
-            del run_options["seed_simulator"]
+        # York revision (upstream #2473): resolve the seed once, without duplicate kwargs.
+        seed = run_options.pop("seed_simulator", None)
+        if self._seed is not None:
+            seed = self._seed
 
         # run circuits
         result = self._backend.run(
             circuits,
             shots=shots,
-            seed_simulator=self._seed,
+            seed_simulator=seed,
             parameter_binds=parameter_binds,
             memory=True,
             **run_options,
@@ -248,6 +251,9 @@ def _prepare_memory(result: Result) -> list[list[str]]:
     """There is no split of results due to max_experiments for Aer"""
     lst = []
     for exp in result.results:
+        # York revision (upstream #2490): do not hide backend errors as shape errors.
+        if exp.status.upper().startswith("ERROR"):
+            raise AerError(exp.status)
         if hasattr(exp.data, "memory") and exp.data.memory:
             lst.append(exp.data.memory)
         else:

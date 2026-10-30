@@ -68,4 +68,6 @@ else
     env -u LD_LIBRARY_PATH "$workspace/.venv-york/bin/python" -I \
         "$workspace/tools/york_smoke.py" --device CPU \
         --output "$workspace/artifacts/smoke-$evidence_label.json"
+    # Run native-crash-safe regressions against the installed York wheel.
+    "$runtime_python" -I -m unittest discover -s "$workspace/test/york" -v
 fi
