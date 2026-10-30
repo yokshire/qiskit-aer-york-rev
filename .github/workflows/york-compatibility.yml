@@ -10,6 +10,8 @@ on:
     branches: [main]
   pull_request:
     branches: [main, codex/york-mps-truncation]
+    # Retargeting a stacked PR changes the merge tree without a head push.
+    types: [opened, synchronize, reopened, edited]
 
 permissions:
   contents: read
