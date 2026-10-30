@@ -10,6 +10,7 @@
  * Any modifications or derivative works of this code must retain this
  * copyright notice, and modified files need to carry a notice indicating
  * that they have been altered from the originals.
+ * York revision: use portable Thrust host/device annotations.
  */
 
 #ifndef _qv_density_matrix_thrust_hpp_
@@ -319,7 +320,7 @@ public:
 
   int qubits_count(void) { return 2; }
 
-  __host__ __device__ void operator()(const uint_t &i) const {
+  AER_THRUST_HOST_DEVICE void operator()(const uint_t &i) const {
     uint_t i0, i1, i2;
     thrust::complex<data_t> *vec0;
     thrust::complex<data_t> *vec1;
@@ -407,7 +408,7 @@ public:
   }
   int qubits_count(void) { return 2; }
 
-  __host__ __device__ void operator()(const uint_t &i) const {
+  AER_THRUST_HOST_DEVICE void operator()(const uint_t &i) const {
     uint_t i0, i1, i2;
     thrust::complex<data_t> *vec0;
     thrust::complex<data_t> *vec1;
@@ -463,7 +464,7 @@ public:
 
   bool is_diagonal(void) { return true; }
 
-  __host__ __device__ void operator()(const uint_t &i) const {
+  AER_THRUST_HOST_DEVICE void operator()(const uint_t &i) const {
     uint_t j, imr, imc;
     thrust::complex<data_t> *vec;
     thrust::complex<data_t> q;
@@ -549,7 +550,7 @@ public:
   bool is_diagonal(void) { return true; }
   bool batch_enable(void) override { return enable_batch_; }
 
-  __host__ __device__ void operator()(const uint_t &i) const {
+  AER_THRUST_HOST_DEVICE void operator()(const uint_t &i) const {
     thrust::complex<data_t> *vec0;
     thrust::complex<data_t> *vec1 = nullptr;
     thrust::complex<data_t> q0, q1;
@@ -637,7 +638,7 @@ public:
   bool is_diagonal(void) { return true; }
   bool batch_enable(void) override { return enable_batch_; }
 
-  __host__ __device__ void operator()(const uint_t &i) const {
+  AER_THRUST_HOST_DEVICE void operator()(const uint_t &i) const {
     thrust::complex<data_t> *vec0;
     thrust::complex<data_t> *vec1 = nullptr;
     thrust::complex<data_t> q0, q1, t0, t1;
@@ -728,7 +729,7 @@ public:
 
   bool is_diagonal(void) { return true; }
 
-  __host__ __device__ void operator()(const uint_t &i) const {
+  AER_THRUST_HOST_DEVICE void operator()(const uint_t &i) const {
     thrust::complex<data_t> *vec;
     thrust::complex<data_t> q;
     uint_t irow, icol, gid, local_mask;
@@ -796,7 +797,7 @@ public:
   int qubits_count(void) { return 2; }
   bool batch_enable(void) override { return enable_batch_; }
 
-  __host__ __device__ void operator()(const uint_t &i) const {
+  AER_THRUST_HOST_DEVICE void operator()(const uint_t &i) const {
     uint_t i0, i1, i2;
     thrust::complex<data_t> *vec0;
     thrust::complex<data_t> *vec1;
@@ -878,7 +879,7 @@ public:
   }
   int qubits_count(void) { return 2; }
 
-  __host__ __device__ void operator()(const uint_t &i) const {
+  AER_THRUST_HOST_DEVICE void operator()(const uint_t &i) const {
     uint_t i0, i1, i2;
     thrust::complex<data_t> *vec0;
     thrust::complex<data_t> *vec1;
@@ -943,7 +944,7 @@ public:
   }
   int qubits_count(void) { return 2; }
 
-  __host__ __device__ void operator()(const uint_t &i) const {
+  AER_THRUST_HOST_DEVICE void operator()(const uint_t &i) const {
     uint_t i0, i1, i2;
     thrust::complex<data_t> *vec0;
     thrust::complex<data_t> *vec1;
@@ -1026,7 +1027,7 @@ public:
     return diag_stride_ - 1;
   }
 
-  __host__ __device__ double operator()(const uint_t &i) const {
+  AER_THRUST_HOST_DEVICE double operator()(const uint_t &i) const {
     thrust::complex<data_t> *vec;
     thrust::complex<data_t> q0;
     double ret = 0.0;
@@ -1073,7 +1074,7 @@ public:
   }
   bool batch_enable(void) { return false; }
 
-  __host__ __device__ double operator()(const uint_t &i) const {
+  AER_THRUST_HOST_DEVICE double operator()(const uint_t &i) const {
     thrust::complex<data_t> *vec;
     thrust::complex<data_t> q0;
     double ret = 0.0;
@@ -1151,7 +1152,7 @@ public:
   }
   bool batch_enable(void) { return false; }
 
-  __host__ __device__ double operator()(const uint_t &i) const {
+  AER_THRUST_HOST_DEVICE double operator()(const uint_t &i) const {
     thrust::complex<data_t> *vec;
     thrust::complex<data_t> q0;
     double ret = 0.0;
@@ -1234,7 +1235,7 @@ public:
     return (1ull << qubit_sp_);
   }
 
-  __host__ __device__ double operator()(const uint_t &i) const {
+  AER_THRUST_HOST_DEVICE double operator()(const uint_t &i) const {
     thrust::complex<data_t> q;
     thrust::complex<data_t> *vec;
     double ret = 0.0;
@@ -1323,7 +1324,7 @@ public:
 
   bool is_diagonal(void) { return true; }
 
-  __host__ __device__ void operator()(const uint_t &i) const {
+  AER_THRUST_HOST_DEVICE void operator()(const uint_t &i) const {
     thrust::complex<data_t> q;
     thrust::complex<data_t> *vec;
     double scale;
@@ -1444,7 +1445,7 @@ public:
     return (1ull << (nq - 2 * num_qubits_));
   }
 
-  __host__ __device__ void operator()(const uint_t &i) const {
+  AER_THRUST_HOST_DEVICE void operator()(const uint_t &i) const {
     thrust::complex<data_t> q;
     thrust::complex<data_t> *vec;
     uint_t idx, ii, t, j, k;

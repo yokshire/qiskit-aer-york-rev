@@ -10,6 +10,7 @@
  * Any modifications or derivative works of this code must retain this
  * copyright notice, and modified files need to carry a notice indicating
  * that they have been altered from the originals.
+ * York revision: use portable Thrust host/device annotations.
  */
 
 #ifndef _qv_chunk_container_hpp_
@@ -649,7 +650,7 @@ void ChunkContainer<data_t>::ExecuteSum(double *pSum, Function func,
 }
 
 struct complex_sum {
-  __host__ __device__ thrust::complex<double>
+  AER_THRUST_HOST_DEVICE thrust::complex<double>
   operator()(const thrust::complex<double> &a,
              const thrust::complex<double> &b) {
     return a + b;

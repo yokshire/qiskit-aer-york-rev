@@ -110,6 +110,40 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
 
+  thrust-omp-compatibility:
+    needs: inventory
+    name: CPU Thrust OMP / current system headers
+    runs-on: ubuntu-26.04
+    timeout-minutes: 40
+    env:
+      OMP_NUM_THREADS: '2'
+      OPENBLAS_NUM_THREADS: '2'
+      CMAKE_BUILD_PARALLEL_LEVEL: '2'
+      QISKIT_VERSION: ${{ needs.inventory.outputs.qiskit }}
+      RUNTIME_VERSION: ${{ needs.inventory.outputs.runtime }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+      - name: Current system build libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libopenblas-dev libspdlog-dev nlohmann-json3-dev libthrust-dev
+      - name: Build and exercise the actual York Thrust OMP wheel
+        run: bash tools/york_build.sh cpu "$QISKIT_VERSION" "$RUNTIME_VERSION" thrust-omp
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: york-thrust-omp
+          path: |
+            artifacts/smoke-*.json
+            artifacts/cpu-wheel.json
+            artifacts/installed-versions.txt
+          retention-days: 30
+
   cuda-wheel:
     needs: inventory
     name: CUDA 12 wheel build and metadata (no GPU execution)
@@ -148,7 +182,7 @@ jobs:
 
   report:
     if: always()
-    needs: [inventory, static-review, cpu-compatibility, cuda-wheel]
+    needs: [inventory, static-review, cpu-compatibility, cuda-wheel, thrust-omp-compatibility]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:

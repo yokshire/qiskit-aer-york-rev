@@ -10,6 +10,7 @@
  * Any modifications or derivative works of this code must retain this
  * copyright notice, and modified files need to carry a notice indicating
  * that they have been altered from the originals.
+ * York revision: use portable Thrust host/device annotations.
  */
 
 #ifndef _qv_device_chunk_container_hpp_
@@ -971,7 +972,7 @@ public:
     offset_ = 1ull << q;
   }
 
-  __host__ __device__ void operator()(const uint_t &i) const {
+  AER_THRUST_HOST_DEVICE void operator()(const uint_t &i) const {
     uint_t i0, i1;
     thrust::complex<data_t> q0, q1;
     thrust::complex<data_t> *vec;
