@@ -325,6 +325,8 @@ class AerBackendConfiguration:
             "max_shots": self.max_shots,
             "coupling_map": self.coupling_map,
             "dynamic_reprate_enabled": self.dynamic_reprate_enabled,
+            # York revision (upstream #2236): preserve the existing attribute in serialization.
+            "open_pulse": self.open_pulse,
         }
 
         if hasattr(self, "supported_instructions"):
