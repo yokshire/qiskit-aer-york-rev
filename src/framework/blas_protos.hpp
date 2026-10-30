@@ -117,6 +117,15 @@ void zheevx_(char *jobz, char *range, char *uplo, int *n,
              std::complex<double> *z, int *ldz, std::complex<double> *work,
              int *lwork, double *rwork, int *iwork, int *ifail, int *info);
 
+// York revision (upstream #2500): divide-and-conquer Hermitian fallback.
+void cheevd_(char *jobz, char *uplo, int *n, std::complex<float> *a, int *lda,
+             float *w, std::complex<float> *work, int *lwork, float *rwork,
+             int *lrwork, int *iwork, int *liwork, int *info);
+
+void zheevd_(char *jobz, char *uplo, int *n, std::complex<double> *a, int *lda,
+             double *w, std::complex<double> *work, int *lwork, double *rwork,
+             int *lrwork, int *iwork, int *liwork, int *info);
+
 // Determines Single-Precision machine parameters.
 float slamch_(char *cmach);
 
