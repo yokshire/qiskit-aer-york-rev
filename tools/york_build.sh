@@ -35,6 +35,8 @@ elif [[ "$build_kind" == cpu ]]; then
     export QISKIT_AER_PACKAGE_NAME=qiskit-aer-york-rev
     export AER_THRUST_BACKEND=OMP
     export QISKIT_ADD_CUDA_REQUIREMENTS=false
+    # This is a verification wheel, not a release: expose vector-bound regressions.
+    export CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_CXX_FLAGS=-D_GLIBCXX_ASSERTIONS"
 else
     printf 'Unknown build kind: %s\n' "$build_kind" >&2
     exit 2
@@ -68,4 +70,6 @@ else
     env -u LD_LIBRARY_PATH "$workspace/.venv-york/bin/python" -I \
         "$workspace/tools/york_smoke.py" --device CPU \
         --output "$workspace/artifacts/smoke-$evidence_label.json"
+    # Run native-crash-safe regressions against the installed York wheel.
+    "$runtime_python" -I -m unittest discover -s "$workspace/test/york" -v
 fi
