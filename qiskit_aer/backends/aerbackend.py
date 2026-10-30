@@ -195,6 +195,8 @@ class AerBackend(Backend, ABC):
             parameter_binds=parameter_binds,
             circuits=circuits,
             run_options=run_options,
+            # York revision: honor the already-supported executor option and override.
+            executor=self._get_executor(**run_options),
         )
         aer_job.submit()
 
