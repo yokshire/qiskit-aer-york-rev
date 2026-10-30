@@ -292,6 +292,16 @@ public:
                                             reg_t &index_vec,
                                             const reg_t &qubits) const;
 
+  // York revision (upstream #2298): truncation settings belong to this state.
+  void set_max_bond_dimension(uint_t max_bond_dimension) {
+    max_bond_dimension_ = max_bond_dimension;
+  }
+  void set_truncation_threshold(double truncation_threshold) {
+    truncation_threshold_ = truncation_threshold;
+  }
+  uint_t get_max_bond_dimension() const { return max_bond_dimension_; }
+  double get_truncation_threshold() const { return truncation_threshold_; }
+
   static void set_omp_threads(uint_t threads) {
     if (threads > 0)
       omp_threads_ = threads;
@@ -557,6 +567,9 @@ private:
   //-----------------------------------------------------------------------
   // Config settings
   //-----------------------------------------------------------------------
+  uint_t max_bond_dimension_ = UINT64_MAX;
+  double truncation_threshold_ = 1e-16;
+
   static uint_t omp_threads_; // Disable multithreading by default
   static uint_t
       omp_threshold_; // Qubit threshold for multithreading when enabled
