@@ -441,7 +441,8 @@ void NoiseModel::enable_superop_method(int num_threads) {
       try {
         quantum_errors_[i].compute_superoperator();
       } catch (...) {
-        exs[omp_get_num_threads()] = std::current_exception();
+        // York revision (upstream #2500): index by thread, not team size.
+        exs[omp_get_thread_num()] = std::current_exception();
       }
     }
     for (const auto &ex : exs)
@@ -461,7 +462,8 @@ void NoiseModel::enable_kraus_method(int num_threads) {
       try {
         quantum_errors_[i].compute_kraus();
       } catch (...) {
-        exs[omp_get_num_threads()] = std::current_exception();
+        // York revision (upstream #2500): index by thread, not team size.
+        exs[omp_get_thread_num()] = std::current_exception();
       }
     }
     for (const auto &ex : exs)
