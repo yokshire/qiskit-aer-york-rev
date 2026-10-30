@@ -395,6 +395,8 @@ void MPS::initialize(uint_t num_qubits) {
 
 void MPS::initialize(const MPS &other) {
   if (this != &other) {
+    max_bond_dimension_ = other.max_bond_dimension_;
+    truncation_threshold_ = other.truncation_threshold_;
     num_qubits_ = other.num_qubits_;
     q_reg_ = other.q_reg_;
     lambda_reg_ = other.lambda_reg_;
@@ -663,8 +665,9 @@ void MPS::common_apply_2_qubit_gate(
 
   MPS_Tensor left_gamma, right_gamma;
   rvector_t lambda;
-  double discarded_value = MPS_Tensor::Decompose(temp, left_gamma, lambda,
-                                                 right_gamma, MPS::mps_lapack_);
+  double discarded_value = MPS_Tensor::Decompose(
+      temp, left_gamma, lambda, right_gamma, MPS::mps_lapack_,
+      max_bond_dimension_, truncation_threshold_);
 
   if (discarded_value > json_chop_threshold_)
     MPS::print_to_log("discarded_value=", discarded_value, ", ");
@@ -734,6 +737,8 @@ void MPS::apply_3_qubit_gate(const reg_t &qubits, Gates gate_type,
 
   // We convert the matrix back into a 3-qubit MPS structure
   MPS sub_MPS;
+  sub_MPS.set_max_bond_dimension(max_bond_dimension_);
+  sub_MPS.set_truncation_threshold(truncation_threshold_);
   sub_MPS.initialize_from_matrix(qubits.size(), state_mat);
 
   // copy the 3-qubit MPS back to the corresponding positions in the original
@@ -830,6 +835,8 @@ void MPS::apply_matrix_to_target_qubits(const reg_t &target_qubits,
 
   // We convert the matrix back into an MPS structure
   MPS sub_MPS;
+  sub_MPS.set_max_bond_dimension(max_bond_dimension_);
+  sub_MPS.set_truncation_threshold(truncation_threshold_);
   sub_MPS.initialize_from_matrix(num_qubits, state_mat);
 
   if (num_qubits == num_qubits_) {
@@ -1800,8 +1807,8 @@ void MPS::initialize_from_matrix(uint_t num_qubits, const cmatrix_t &mat) {
     S.clear();
     S.resize(std::min(reshaped_matrix.GetRows(), reshaped_matrix.GetColumns()));
     csvd_wrapper(reshaped_matrix, U, S, V, MPS::mps_lapack_);
-    reduce_zeros(U, S, V, MPS_Tensor::get_max_bond_dimension(),
-                 MPS_Tensor::get_truncation_threshold(), MPS::mps_lapack_);
+    reduce_zeros(U, S, V, get_max_bond_dimension(), get_truncation_threshold(),
+                 MPS::mps_lapack_);
 
     // step 3 - update q_reg_ with new gamma and new lambda
     //          increment number of qubits in the MPS structure
@@ -1864,6 +1871,8 @@ void MPS::initialize_component_internal(const reg_t &qubits,
   // Therefore we don't need to sort before reset_internal
   reset_internal(new_qubits, rng);
   MPS qubits_mps;
+  qubits_mps.set_max_bond_dimension(max_bond_dimension_);
+  qubits_mps.set_truncation_threshold(truncation_threshold_);
   qubits_mps.initialize_from_matrix(num_qubits, mat);
   for (uint_t i = first; i <= last; i++) {
     q_reg_[i] = qubits_mps.q_reg_[i - first];
@@ -1925,7 +1934,8 @@ mps_container_t MPS::move_to_mps_container() {
   for (uint_t i = 0; i < num_qubits() - 1; i++) {
     ret.second.push_back(std::move(lambda_reg_[i]));
   }
-  initialize(MPS());
+  // Clear moved tensors without resetting this instance's configured settings.
+  initialize(uint_t{0});
   return ret;
 }
 
