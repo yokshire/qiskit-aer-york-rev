@@ -412,7 +412,9 @@ def _transform_by_operator_list(
     # create quadratic program
     x = cvxpy.Variable(n)
     prob = cvxpy.Problem(
-        cvxpy.Minimize(cvxpy.quad_form(x, A) + b.T @ x),
+        # York revision (upstream #2399): A is a Gram matrix, hence PSD by construction.
+        # Avoid rejecting it because of small numerical eigenvalue errors.
+        cvxpy.Minimize(cvxpy.quad_form(x, A, assume_PSD=True) + b.T @ x),
         constraints=[cvxpy.sum(x) <= 1, x >= 0, source_fids.T @ x <= target_fid],
     )
     # solve quadratic program

@@ -52,6 +52,12 @@ wheel="${wheel_files[0]}"
 # One resolver invocation with exact versions prevents an older Qiskit fallback.
 # packaging is a smoke-test dependency, not an added Aer runtime requirement.
 "$runtime_python" -m pip install "$wheel" "qiskit==$qiskit_version" "qiskit-ibm-runtime==$runtime_version" 'packaging>=24,<27'
+# Exercise the optional optimizer on one supported CI Python, without adding it
+# to Aer runtime dependencies or pretending skips on other Pythons are passes.
+if [[ "$build_kind" == cpu && -f "$workspace/test/york/test_noise_transformation_psd.py" ]] && \
+    "$runtime_python" -c 'import sys; sys.exit(sys.version_info[:2] != (3, 12))'; then
+    "$runtime_python" -m pip install 'cvxpy==1.5.4'
+fi
 "$runtime_python" -m pip check
 "$runtime_python" -m pip freeze > artifacts/installed-versions.txt
 if [[ "$build_kind" == gpu ]]; then
@@ -68,4 +74,6 @@ else
     env -u LD_LIBRARY_PATH "$workspace/.venv-york/bin/python" -I \
         "$workspace/tools/york_smoke.py" --device CPU \
         --output "$workspace/artifacts/smoke-$evidence_label.json"
+    # Run native-crash-safe regressions against the installed York wheel.
+    "$runtime_python" -I -m unittest discover -s "$workspace/test/york" -v
 fi
