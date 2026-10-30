@@ -211,7 +211,8 @@ void Branch::branch_shots(reg_t &shots, int_t nbranch) {
         if (branches_[i]->param_shots_[ppos] == 0) {
           branches_[i]->param_index_.erase(branches_[i]->param_index_.begin() +
                                            ppos);
-          branches_[i]->param_shots_.erase(branches_[i]->param_index_.begin() +
+          // York revision (upstream #2489): erase with this vector's iterator.
+          branches_[i]->param_shots_.erase(branches_[i]->param_shots_.begin() +
                                            ppos);
         } else {
           if (ppos > 0) {
