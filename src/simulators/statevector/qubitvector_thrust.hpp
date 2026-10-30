@@ -10,6 +10,7 @@
  * Any modifications or derivative works of this code must retain this
  * copyright notice, and modified files need to carry a notice indicating
  * that they have been altered from the originals.
+ * York revision: use portable Thrust host/device annotations.
  */
 
 #ifndef _qv_qubit_vector_thrust_hpp_
@@ -2082,7 +2083,7 @@ public:
 
   bool is_diagonal(void) { return true; }
 
-  __host__ __device__ void operator()(const uint_t &i) const {
+  AER_THRUST_HOST_DEVICE void operator()(const uint_t &i) const {
     thrust::complex<data_t> q;
     thrust::complex<data_t> *vec;
     double scale;
@@ -2129,7 +2130,7 @@ public:
     this->chunk_bits_ = 0;
     return 1;
   }
-  __host__ __device__ void operator()(const uint_t &i) const {
+  AER_THRUST_HOST_DEVICE void operator()(const uint_t &i) const {
     uint_t iChunk = i;
     if (reduce_) {
       probs_[iChunk] = reduce_[iChunk * reduce_buf_size_];
@@ -2170,7 +2171,7 @@ public:
     this->chunk_bits_ = 0;
     return 1;
   }
-  __host__ __device__ void operator()(const uint_t &i) const {
+  AER_THRUST_HOST_DEVICE void operator()(const uint_t &i) const {
     uint_t iChunk = i;
     double p0, p1, p_total, rnd, p;
     uint_t bit, j;
@@ -2347,7 +2348,7 @@ public:
 
   bool is_diagonal(void) { return true; }
 
-  __host__ __device__ void operator()(const uint_t &i) const {
+  AER_THRUST_HOST_DEVICE void operator()(const uint_t &i) const {
     thrust::complex<data_t> q;
     thrust::complex<data_t> *vec;
     double scale;
@@ -2500,7 +2501,7 @@ public:
     return 1;
   }
 
-  __host__ __device__ void operator()(const uint_t &i) const {
+  AER_THRUST_HOST_DEVICE void operator()(const uint_t &i) const {
     uint_t iChunk = i;
     uint_t n64, i64, ibit;
     n64 = (this->num_creg_bits_ + 63) >> 6;
@@ -2540,7 +2541,7 @@ public:
     return 1;
   }
 
-  __host__ __device__ void operator()(const uint_t &i) const {
+  AER_THRUST_HOST_DEVICE void operator()(const uint_t &i) const {
     uint_t iChunk = i;
     uint_t n64, i64, ibit;
     uint_t *mask;
@@ -2594,7 +2595,7 @@ public:
     return 1;
   }
 
-  __host__ __device__ void operator()(const uint_t &i) const {
+  AER_THRUST_HOST_DEVICE void operator()(const uint_t &i) const {
     uint_t iChunk = i;
     uint_t n64, i64, ibit, val;
     n64 = (this->num_creg_bits_ + 63) >> 6;
@@ -2827,7 +2828,7 @@ public:
     coeff_ = c;
   }
 
-  __host__ __device__ void operator()(const uint_t &i) const {
+  AER_THRUST_HOST_DEVICE void operator()(const uint_t &i) const {
     thrust::complex<data_t> *vec;
     thrust::complex<data_t> q0;
     thrust::complex<data_t> q1;
@@ -2967,7 +2968,7 @@ public:
     prob_buf_size_ = prob_size;
   }
 
-  __host__ __device__ void operator()(const uint_t &i) const {
+  AER_THRUST_HOST_DEVICE void operator()(const uint_t &i) const {
     uint_t i0, i1;
     thrust::complex<data_t> q0, q1;
     thrust::complex<data_t> *vec0;
@@ -3005,7 +3006,7 @@ public:
     prob_buf_size_ = prob_size;
   }
 
-  __host__ __device__ void
+  AER_THRUST_HOST_DEVICE void
   run_with_cache(uint_t _tid, uint_t _idx,
                  thrust::complex<data_t> *_cache) const {
     uint_t j;
@@ -3059,7 +3060,7 @@ public:
     this->chunk_bits_ = 0;
     return 1;
   }
-  __host__ __device__ void operator()(const uint_t &i) const {
+  AER_THRUST_HOST_DEVICE void operator()(const uint_t &i) const {
     uint_t iChunk = i;
     double p0, p1, rnd;
 
@@ -3195,7 +3196,7 @@ public:
 
   // in uint param array: array of qubits results to be stored, mask registers,
   // target registers
-  __host__ __device__ void operator()(const uint_t &i) const {
+  AER_THRUST_HOST_DEVICE void operator()(const uint_t &i) const {
     uint_t iChunk = i;
     uint_t n64 = (this->num_creg_bits_ + 63) >> 6;
     uint_t *regs = this->params_;
@@ -3319,7 +3320,7 @@ public:
 
   // in uint param array: array of qubits results to be stored, mask registers,
   // target registers
-  __host__ __device__ void operator()(const uint_t &i) const {
+  AER_THRUST_HOST_DEVICE void operator()(const uint_t &i) const {
     uint_t iChunk = i;
     uint_t n64 = (this->num_creg_bits_ + 63) >> 6;
     uint_t *mems = this->params_;

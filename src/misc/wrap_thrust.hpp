@@ -60,4 +60,13 @@ DISABLE_WARNING_PUSH
 #endif
 DISABLE_WARNING_POP
 
+// York revision: recent Thrust no longer exports CUDA annotations for host-only
+// compilers. Keep our host/device functions portable without defining reserved
+// compiler keywords. GPU compilation retains the original CUDA/HIP annotations.
+#ifdef AER_THRUST_GPU
+#define AER_THRUST_HOST_DEVICE __host__ __device__
+#else
+#define AER_THRUST_HOST_DEVICE
+#endif
+
 #endif // inclusion guard
