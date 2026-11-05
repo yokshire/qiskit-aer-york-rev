@@ -2,6 +2,7 @@
  * This code is part of Qiskit.
  *
  * (C) Copyright IBM 2018, 2019.
+ * Modified by York to accumulate existing-gate phases once per operation.
  *
  * This code is licensed under the Apache License, Version 2.0. You may
  * obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -115,6 +116,10 @@ protected:
   // clear
   void apply_gate(const Operations::Op &op, RngEngine &rng);
   void apply_gate(const Operations::Op &op, RngEngine &rng, uint_t rank);
+
+  // Track the phase once per operation, never once per decomposition term.
+  // Existing-gate fix isolated from upstream Qiskit Aer PR #2425.
+  void accumulate_op_global_phase(const Operations::Op &op);
 
   // Apply a multi-qubit Pauli gate
   void apply_pauli(const reg_t &qubits, const std::string &pauli, uint_t rank);
@@ -500,6 +505,12 @@ void State::apply_ops_parallel(InputIterator first, InputIterator last,
     rng_seeds[i] = rng.rand_int<size_t>(0, SIZE_MAX);
   }
 
+  for (auto it = first; it != last; ++it) {
+    if (it->type == Operations::OpType::gate) {
+      accumulate_op_global_phase(*it);
+    }
+  }
+
 #pragma omp parallel for if (BaseState::qreg_.check_omp_threshold() &&         \
                              BaseState::threads_ > 1)                          \
     num_threads(BaseState::threads_)
@@ -534,6 +545,7 @@ void State::apply_stabilizer_circuit(InputIterator first, InputIterator last,
     if (BaseState::creg().check_conditional(op)) {
       switch (op.type) {
       case Operations::OpType::gate:
+        accumulate_op_global_phase(op);
         apply_gate(op, rng, 0);
         break;
       case Operations::OpType::reset:
@@ -654,7 +666,29 @@ void State::apply_reset(const reg_t &qubits, AER::RngEngine &rng) {
   }
 }
 
+void State::accumulate_op_global_phase(const Operations::Op &op) {
+  auto it = gateset_.find(op.name);
+  if (it == gateset_.end()) {
+    return;
+  }
+  switch (it->second) {
+  case Gates::sx:
+    BaseState::add_global_phase(M_PI / 4.);
+    break;
+  case Gates::sxdg:
+    BaseState::add_global_phase(-M_PI / 4.);
+    break;
+  case Gates::rz:
+    // RZ(theta) = exp(-i theta/2) diag(1, exp(i theta)).
+    BaseState::add_global_phase(-0.5 * std::real(op.params[0]));
+    break;
+  default:
+    break;
+  }
+}
+
 void State::apply_gate(const Operations::Op &op, RngEngine &rng) {
+  accumulate_op_global_phase(op);
   const int_t NUM_STATES = BaseState::qreg_.get_num_states();
 #pragma omp parallel for if (BaseState::threads_ > 1 &&                        \
                              BaseState::qreg_.check_omp_threshold())           \
@@ -693,11 +727,9 @@ void State::apply_gate(const Operations::Op &op, RngEngine &rng, uint_t rank) {
     BaseState::qreg_.apply_h(op.qubits[0], rank);
     break;
   case Gates::sx:
-    BaseState::add_global_phase(M_PI / 4.);
     BaseState::qreg_.apply_sx(op.qubits[0], rank);
     break;
   case Gates::sxdg:
-    BaseState::add_global_phase(-M_PI / 4.);
     BaseState::qreg_.apply_sxdg(op.qubits[0], rank);
     break;
   case Gates::cx:
