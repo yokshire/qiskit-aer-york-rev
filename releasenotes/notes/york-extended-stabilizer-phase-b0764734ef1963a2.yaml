@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Corrected the global phase of saved statevectors for the existing
+    ``extended_stabilizer`` gates ``rz``, ``sx``, and ``sxdg``. The phase is now
+    accumulated once per operation rather than once per decomposition term,
+    including when terms run in parallel. This does not change measurement
+    probabilities or add new supported gates. The repair isolates the
+    existing-gate fix from upstream
+    `Qiskit Aer PR #2425 <https://github.com/Qiskit/qiskit-aer/pull/2425>`__.
