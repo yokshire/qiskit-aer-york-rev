@@ -1,0 +1,9 @@
+features:
+  - |
+    York Aer now supports optional accelerator plugins through independent
+    wheels and versioned entry points. OpenCL supports vendor-neutral GPU
+    statevector evolution, including native Windows NVIDIA and Intel execution.
+    CuPy providers add explicit NVIDIA CUDA and AMD ROCm/HIP entry points.
+    Plugins support ideal gates, terminal sampling, parameter batches, state
+    saving and expectation values. Unsupported noise/control-flow/method options
+    fail explicitly. AMD/ROCm hardware validation remains outstanding.
