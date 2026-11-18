@@ -1,9 +1,31 @@
-# York accelerator plugins (API 1)
+# GPU engines in the modular York simulator
+
+Version 0.2.0 GPU wheels depend on the lightweight core and optional Qiskit
+integration. They no longer require the full `qiskit-aer-york-rev` CPU bundle.
+See [modular installation and API](../MODULAR_ARCHITECTURE.md).
+
+```text
+python -m pip install ./core ./integrations/qiskit ./accelerators/opencl
+```
+
+```python
+from qiskit_aer_york import Simulator
+simulator = Simulator("opencl", engine_options={"vendor": "intel"}, precision="single")
+result = simulator.run(circuit, shots=1024).result()
+```
+
+`Simulator("cuda")` and `Simulator("rocm")` select the independently installed
+CuPy runtime engine. CUDA and HIP builds are checked explicitly. Existing full
+Aer users can also use the legacy `AerSimulator(accelerator=...)` entry points
+below after explicitly installing the full native bundle.
+
+## Legacy native Aer accelerator API (API 1)
 
 The general-purpose CPU wheel owns `qiskit_aer`. These small, independent wheels
 own `qiskit_aer_york_opencl` and `qiskit_aer_york_cupy`. Installing or uninstalling
-a plugin leaves the CPU wheel intact. They require York `0.17.2.post2.dev0` or
-later; older CPU wheels do not implement the protocol. None are published yet.
+a plugin leaves the CPU wheel intact. Using these legacy entry points requires
+York `0.17.2.post2.dev0` or later; older CPU wheels do not implement the protocol.
+The modular `Simulator` API above has no native Aer dependency. None are published yet.
 
 ## Installation and selection
 
@@ -11,19 +33,19 @@ First build/install the York CPU wheel, following the repository README. Use
 the Python interpreter in that environment for every command below.
 
 ```text
-python -m pip install ./accelerators/opencl
+python -m pip install ./core ./integrations/qiskit ./accelerators/opencl
 ```
 
 OpenCL uses the GPU driver's compute runtime, without a CUDA/ROCm toolkit or
 Linux requirement. For NVIDIA CUDA 12 on native Windows or Linux:
 
 ```text
-python -m pip install './accelerators/cupy[cuda12]'
+python -m pip install ./core ./integrations/qiskit './accelerators/cupy[cuda12]'
 ```
 
 For AMD ROCm/HIP, install a **CuPy HIP build matching the installed ROCm SDK**,
 following the [CuPy installation documentation](https://docs.cupy.dev/en/stable/install.html),
-then `python -m pip install ./accelerators/cupy`. This wheel deliberately does
+then install `./core ./integrations/qiskit ./accelerators/cupy` together. This wheel deliberately does
 not install a CUDA dependency for AMD. A CuPy CUDA build and HIP build both own
 the `cupy` namespace: use separate environments to test these two SDKs.
 AMD's [HIP platform requirements](https://rocmdocs.amd.com/projects/HIP/en/latest/faq.html)

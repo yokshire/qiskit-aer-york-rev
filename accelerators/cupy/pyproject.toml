@@ -4,10 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "qiskit-aer-york-cupy"
-version = "0.1.0"
+version = "0.2.0"
 description = "Optional CUDA and ROCm statevector plugins for York Aer"
 requires-python = ">=3.10"
-dependencies = ["qiskit-aer-york-rev>=0.17.2.post2.dev0,<0.18"]
+dependencies = ["qiskit-aer-york-core>=0.1,<0.2", "qiskit-aer-york-qiskit>=0.1,<0.2"]
 license = "Apache-2.0"
 license-files = ["LICENSE.txt"]
 
@@ -21,3 +21,7 @@ rocm = "qiskit_aer_york_cupy:ROCmProvider"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[project.entry-points."qiskit_aer_york.engines"]
+cuda = "qiskit_aer_york_cupy:CUDAEngine"
+rocm = "qiskit_aer_york_cupy:ROCmEngine"

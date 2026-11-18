@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "qiskit-aer-york-statevector"
+version = "0.1.0"
+description = "Optional NumPy CPU statevector engine for York"
+requires-python = ">=3.10"
+dependencies = ["qiskit-aer-york-core>=0.1,<0.2", "qiskit-aer-york-qiskit>=0.1,<0.2"]
+license = "Apache-2.0"
+license-files = ["LICENSE.txt"]
+
+[project.entry-points."qiskit_aer_york.engines"]
+statevector = "qiskit_aer_york_statevector:StatevectorEngine"
+
+[tool.setuptools.packages.find]
+where = ["src"]

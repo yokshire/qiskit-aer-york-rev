@@ -118,6 +118,8 @@ def make_report(directory, needs):
     required_jobs = {
         "inventory",
         "static-review",
+        "modular-install",
+        "nature-driver",
         "cpu-compatibility",
         "cpu-portability",
         "cuda-wheel",
@@ -137,6 +139,53 @@ def make_report(directory, needs):
         or len(gpu_metadata_files) != 1
     ):
         passed = False
+    modular_results = [
+        json.loads(path.read_text(encoding="utf-8"))
+        for path in sorted(directory.rglob("modular-*.json"))
+    ]
+    if {result.get("label") for result in modular_results} != {
+        "ubuntu-24.04",
+        "windows-2022",
+        "macos-15",
+    } or any(
+        result.get("passed") is not True
+        or result.get("core_dependencies") != []
+        or result.get("native_aer_installed") is not False
+        or result.get("array_transport") is not True
+        for result in modular_results
+    ):
+        passed = False
+    nature_files = list(directory.rglob("nature-native.json"))
+    data_results = [
+        json.loads(path.read_text(encoding="utf-8"))
+        for path in sorted(directory.rglob("data-*.json"))
+    ]
+    if (
+        len(data_results) != 3
+        or {result.get("platform_system") for result in data_results}
+        != {"Linux", "Windows", "Darwin"}
+        or any(
+            result.get("passed") is not True or result.get("array_views_share_payload") is not True
+            for result in data_results
+        )
+    ):
+        passed = False
+    nature_results = [json.loads(path.read_text(encoding="utf-8")) for path in nature_files]
+    if (
+        len(nature_results) != 2
+        or {result.get("controller_system") for result in nature_results} != {"Linux", "Windows"}
+        or any(
+            result.get("passed") is not True
+            or result.get("runtime") != "native"
+            or result.get("worker_platform", {}).get("system") != result.get("controller_system")
+            or result.get("native_aer_installed") is not False
+            or result.get("array_transport") is not True
+            or result.get("binary_matches_fcidump") is not True
+            or result.get("rohf_spin_verified") is not True
+            for result in nature_results
+        )
+    ):
+        passed = False
     for result in cpu_results:
         expected = versions.get("packages", {})
         for name in ("qiskit", "qiskit-ibm-runtime"):
@@ -150,6 +199,9 @@ def make_report(directory, needs):
             {
                 "packages": packages,
                 "checks": checks,
+                "modular": modular_results,
+                "nature": nature_results,
+                "data": data_results,
                 "passed": passed,
                 "source_commit": os.environ.get("GITHUB_SHA", "local"),
                 "smoke": [
@@ -172,7 +224,7 @@ def make_report(directory, needs):
         ).encode()
     ).hexdigest()
     heading = (
-        "PASS — general-purpose CPU compatibility, OS portability, and optional CUDA packaging"
+        "PASS — dependency-free core, optional engines, CPU/OS compatibility and CUDA packaging"
         if passed
         else "FAIL — review required"
     )
@@ -212,6 +264,21 @@ def make_report(directory, needs):
         )
         if result.get("error"):
             lines.append(f"  Failure: {result['error']}")
+    lines += ["", "## Lightweight install evidence", ""]
+    for result in modular_results:
+        lines.append(
+            f"- {result.get('label')}: core has zero runtime dependencies; CPU and Nature run without native Aer/PySCF; passed={result.get('passed')}."
+        )
+    for result in nature_results:
+        lines.append(
+            f"- {result.get('controller_system')} native PySCF {result.get('pyscf_version')} H2 calculation and York CPU execution: passed={result.get('passed')}; energy error={result.get('error')}."
+        )
+    for result in data_results:
+        lines.append(
+            f"- {result.get('platform_system')} packed array transport: "
+            f"passed={result.get('passed')}; shared views={result.get('array_views_share_payload')}; "
+            f"synthetic payload ratio={result.get('payload_ratio')}."
+        )
     if not smoke_results:
         lines.append("No functional evidence was produced; inspect failed or skipped jobs.")
     lines += [
