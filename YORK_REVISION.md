@@ -76,7 +76,7 @@ Each run:
    environments on Windows/Linux/macOS. Tests optional Qiskit primitives and
    the native bridge separately from the lightweight path.
    Tests Nature with PySCF absent on all three operating systems and a real
-   optional PySCF H2 calculation on Linux. Windows-to-WSL has local evidence.
+   optional native PySCF H2 calculations on Linux and Windows x64.
    Validates shared packed-array transport and records reproducible data benchmarks
    on all three OSes; native molecular checks compare binary/text routes and ROHF spin.
 7. Saves a Markdown job summary and JSON/Markdown artifacts for 30 days. A

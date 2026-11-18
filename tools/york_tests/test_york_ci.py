@@ -2,6 +2,7 @@
 """Offline regression tests for the compatibility monitor's failure semantics."""
 
 import importlib.util
+import json
 from pathlib import Path
 import tempfile
 import unittest
@@ -47,17 +48,20 @@ class YorkCITests(unittest.TestCase):
                 },
             )
 
-        CI.write_json(
-            path / "nature-native.json",
-            {
-                "passed": True,
-                "runtime": "native",
-                "native_aer_installed": False,
-                "array_transport": True,
-                "binary_matches_fcidump": True,
-                "rohf_spin_verified": True,
-            },
-        )
+        for system in ("Linux", "Windows"):
+            CI.write_json(
+                path / system / "nature-native.json",
+                {
+                    "passed": True,
+                    "runtime": "native",
+                    "controller_system": system,
+                    "worker_platform": {"system": system},
+                    "native_aer_installed": False,
+                    "array_transport": True,
+                    "binary_matches_fcidump": True,
+                    "rohf_spin_verified": True,
+                },
+            )
         for system in ("Linux", "Windows", "Darwin"):
             CI.write_json(
                 path / f"data-{system}.json",
@@ -100,6 +104,29 @@ class YorkCITests(unittest.TestCase):
             self.successful_evidence(directory)
             path = Path(directory)
             (path / "modular-windows-2022.json").unlink()
+            self.assertFalse(CI.make_report(path, needs)["passed"])
+
+    def test_windows_native_chemistry_rejects_a_linux_worker(self):
+        needs = {
+            name: {"result": "success"}
+            for name in (
+                "inventory",
+                "static-review",
+                "modular-install",
+                "nature-driver",
+                "cpu-compatibility",
+                "cpu-portability",
+                "cuda-wheel",
+            )
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            self.successful_evidence(directory)
+            path = Path(directory)
+            windows = path / "Windows" / "nature-native.json"
+            self.assertTrue(CI.make_report(path, needs)["passed"])
+            result = json.loads(windows.read_text(encoding="utf-8"))
+            result["worker_platform"]["system"] = "Linux"
+            CI.write_json(windows, result)
             self.assertFalse(CI.make_report(path, needs)["passed"])
 
     def test_stable_selection_excludes_prerelease_yanked_and_empty(self):

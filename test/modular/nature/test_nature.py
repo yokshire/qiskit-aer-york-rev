@@ -98,14 +98,36 @@ class NatureTests(unittest.TestCase):
         open_shell = IntegralBundle([[-1.5]], [0.5], num_alpha=1, num_beta=0, nuclear_energy=0.4)
         self.assertEqual(nature.from_integrals(open_shell).num_particles, (1, 0))
 
-    def test_native_windows_rejected_before_process_or_sdk_load(self):
+    def test_windows_x64_native_uses_python_and_never_retries_with_wsl(self):
+        driver = load_plugin("pyscf", "driver")
+        reply = SimpleNamespace(returncode=0, stdout=json.dumps(RESPONSE), stderr="")
+        with (
+            patch("qiskit_aer_york_pyscf.platform.system", return_value="Windows"),
+            patch("qiskit_aer_york_pyscf.platform.machine", return_value="AMD64"),
+            patch("qiskit_aer_york_pyscf.sys.maxsize", 2**63 - 1),
+            patch("qiskit_aer_york_pyscf.subprocess.run", return_value=reply) as run,
+        ):
+            self.assertTrue(driver.capabilities()["native_supported"])
+            result = driver.run(atom="H 0 0 0; H 0 0 0.735", python="worker-python.exe")
+            self.assertEqual(result["runtime"], "native")
+            self.assertEqual(run.call_args.args[0][:3], ["worker-python.exe", "-I", "-c"])
+            self.assertFalse(run.call_args.kwargs["shell"])
+            reply.returncode, reply.stderr = 1, "No module named 'pyscf'"
+            run.reset_mock()
+            with self.assertRaisesRegex(PluginError, "official PySCF 2.15.1"):
+                driver.run(atom="H 0 0 0; H 0 0 0.735")
+            run.assert_called_once()
+            self.assertEqual(run.call_args.args[0][0], sys.executable)
+
+    def test_unsupported_native_windows_arch_rejected_before_process(self):
         driver = load_plugin("pyscf", "driver")
         with (
             patch("qiskit_aer_york_pyscf.platform.system", return_value="Windows"),
+            patch("qiskit_aer_york_pyscf.platform.machine", return_value="ARM64"),
             patch("qiskit_aer_york_pyscf.subprocess.run") as run,
         ):
             self.assertFalse(driver.capabilities()["native_supported"])
-            with self.assertRaisesRegex(PluginError, "native Windows"):
+            with self.assertRaisesRegex(PluginError, "Windows x64"):
                 driver.run(atom="H 0 0 0; H 0 0 0.735")
             run.assert_not_called()
 

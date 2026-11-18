@@ -1,17 +1,17 @@
 # Qiskit Nature and PySCF compatibility
 
-PySCF [supports Linux, macOS and WSL; native Windows is unsupported](https://pyscf.org/user/install.html).
+PySCF now publishes an [official Windows x64 wheel](https://pypi.org/project/pyscf/2.15.1/#files).
 Nature's data/mapping layer and the external chemistry SDK have different
 platform requirements. York separates them into two optional wheels:
 
 | Package | Purpose | PySCF dependency |
 | --- | --- | --- |
 | `qiskit-aer-york-nature` / `integrations/nature` | Read FCIDump, build Nature problems, map to qubits | None |
-| `qiskit-aer-york-pyscf` / `drivers/pyscf` | Dispatch an explicitly selected chemistry worker | None by default |
+| `qiskit-aer-york-pyscf` / `drivers/pyscf` | Dispatch an explicitly selected chemistry worker | None by default; optional native extra |
 
 The core and CPU/GPU engines require neither package. Installing the driver on
-Windows does not compile/import PySCF. Its `native` extra selects PySCF only on
-Linux/macOS. Unsupported native execution fails before starting a process.
+Windows does not compile/import PySCF by default. The `native` extra opts into
+PySCF on Windows x64 (2.15.1 or newer), Linux, or macOS.
 No runtime fallback, automatic install, WSL setup or substitute molecule occurs.
 Psi4 and Gaussian are not installed or implicitly selected.
 
@@ -40,7 +40,31 @@ The operator contains electronic energy; add the problem's
 preserve all driver properties such as dipole integrals or the molecule object.
 The current worker supports RHF/ROHF and real molecular-orbital integrals.
 
-## Windows controller with an explicit WSL worker
+## Native Windows (no WSL)
+
+From a clean x64 Windows Python environment, install the local projects and opt
+into the official PySCF wheel. Require binary dependencies so that an
+unsupported environment fails rather than attempting a source build:
+
+```text
+python -m pip install --only-binary=:all: ./core ./data ./integrations/qiskit ./integrations/nature ./engines/statevector "./drivers/pyscf[native]"
+```
+
+```python
+from qiskit_aer_york import Toolkit
+
+problem = Toolkit().molecule(
+    "pyscf", atom="H 0 0 0; H 0 0 0.735", basis="sto3g", runtime="native"
+)
+```
+
+The worker is a Windows Python subprocess and defaults to the current Python.
+Pass `python=r"C:\path\to\python.exe"` to use a separate native environment.
+The driver does not bundle DLLs or switch to WSL if the native worker fails.
+Windows ARM64 and 32-bit Python are not covered by this path. Linux and macOS
+can also use the `native` extra where compatible wheels are published.
+
+## Separate opt-in WSL mode
 
 Install `./core ./drivers/pyscf` together into the Windows environment. Separately
 prepare a Python environment inside an existing WSL distribution with PySCF
@@ -108,7 +132,8 @@ binary integrals locally, compares their Hamiltonian with FCIDump, and compares
 York's circuit energy to PySCF's RHF energy. It also checks ROHF spin/energy on H.
 Local Windows-to-WSL testing with PySCF 2.14.0 yielded identical
 `-1.116998996754004` Hartree values while PySCF was absent from Windows.
-CI also checks a native Linux worker. Portable macOS tests do not certify native
+CI checks native Windows and Linux workers and verifies the reported worker OS.
+Portable macOS tests do not certify native
 macOS PySCF execution; that path remains subject to upstream SDK support.
 
 ```text
@@ -116,16 +141,16 @@ python -I tools/york_nature_smoke.py --runtime wsl --python /absolute/linux/pyth
 python -I tools/york_nature_smoke.py --runtime native --output artifacts/nature-native.json
 ```
 
-To verify the Windows-to-WSL workflow with a local NVIDIA GPU, also install the
+To verify the fully native Windows workflow with a local NVIDIA GPU, also install the
 optional CUDA engine (see [accelerator setup](accelerators/README.md)) and run:
 
 ```text
-python -I tools/york_nature_smoke.py --runtime wsl --python /absolute/linux/python --distribution Ubuntu --engine cuda --output artifacts/nature-wsl-cuda.json
+python -I tools/york_nature_smoke.py --runtime native --engine cuda --output artifacts/nature-native-cuda.json
 ```
 
 The check requires real GPU gate evolution on the Windows controller and fails
-if that device is unavailable. PySCF still computes the integrals in WSL; the
-observable evaluation and reference comparisons run on the CPU.
+if that device is unavailable. PySCF computes the integrals on the Windows CPU;
+observable evaluation and reference comparisons also run on the CPU.
 
 The old `test/benchmark/vqe_application.py` and Linux ASV files contain historical
 Aqua/`qiskit.chemistry` benchmarks. Modular packages neither import nor install

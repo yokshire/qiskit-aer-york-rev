@@ -17,14 +17,14 @@ optional extras provide equivalent package presets.
 | `qiskit-aer-york-data` / `data` | Packed molecular arrays, binary transport and mapped reuse | NumPy only |
 | `qiskit-aer-york-qiskit` / `integrations/qiskit` | Qiskit circuits, BackendV2, jobs, results and primitive adapters | Qiskit and NumPy; Qiskit brings SciPy |
 | `qiskit-aer-york-nature` / `integrations/nature` | Portable molecular data and qubit mapping | Qiskit Nature; no PySCF/Psi4 SDK |
-| `qiskit-aer-york-pyscf` / `drivers/pyscf` | Native or Windows-to-WSL chemistry worker | None by default; PySCF belongs to the selected worker |
+| `qiskit-aer-york-pyscf` / `drivers/pyscf` | Native Windows x64, Linux, or macOS chemistry worker; WSL opt-in | None by default; PySCF belongs to the selected worker |
 | `qiskit-aer-york-statevector` / `engines/statevector` | Ideal CPU statevector engine | Qiskit integration; no native Aer |
 | `qiskit-aer-york-opencl` / `accelerators/opencl` | OpenCL GPU statevector engine | Qiskit integration and PyOpenCL; vendor driver |
 | `qiskit-aer-york-cupy` / `accelerators/cupy` | CUDA or ROCm GPU statevector engine | Qiskit integration; separately selected CuPy SDK build |
 | `qiskit-aer-york-native` / `engines/native` | Full native Aer methods/noise and existing Aer primitives | Explicitly installs the full `qiskit-aer-york-rev` bundle |
 
 See [Nature/PySCF compatibility](NATURE_COMPATIBILITY.md) for portable integral
-input and the explicit Windows-to-WSL worker. Chemistry runtimes never become
+input and native Windows execution. Chemistry runtimes never become
 mandatory dependencies of the core or Nature's mapping integration.
 
 The core's `Toolkit` facade composes optional integrations/drivers and simulators.

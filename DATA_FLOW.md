@@ -8,7 +8,7 @@ no circuit framework, chemistry SDK or GPU runtime.
 ```mermaid
 flowchart LR
     T[Dependency-free Toolkit] --> D[Optional chemistry driver]
-    D --> W[Explicit native or WSL PySCF worker]
+    D --> W[Native PySCF worker]
     W --> B[Packed binary IntegralBundle]
     B --> F[Optional saved / memory-mapped file]
     F --> N[Optional Nature integration]
@@ -22,12 +22,12 @@ flowchart LR
 Packages are not published yet. Install the local projects together:
 
 ```text
-python -m pip install ./core ./data ./integrations/qiskit ./integrations/nature ./drivers/pyscf ./engines/statevector
+python -m pip install --only-binary=:all: ./core ./data ./integrations/qiskit ./integrations/nature "./drivers/pyscf[native]" ./engines/statevector
 ```
 
-On Windows, configure an existing WSL Python with PySCF separately. Only the
-chemistry calculation uses it; data conversion, mapping and simulation stay on
-Windows. On Linux/macOS, explicitly install PySCF in the chosen native worker.
+On Windows x64, the native extra installs an official PySCF wheel (2.15.1 or
+newer). All steps stay on Windows. To use a separate environment, provide an
+explicit Python path for the selected OS. WSL remains a separate opt-in mode.
 
 ```python
 from qiskit_aer_york import Toolkit
@@ -35,8 +35,7 @@ from qiskit_aer_york import Toolkit
 toolkit = Toolkit()
 print(toolkit.inventory())  # Metadata only; no GPU or chemistry SDK initialization.
 integrals = toolkit.driver("pyscf").run_integrals(
-    atom="H 0 0 0; H 0 0 0.735", basis="sto3g", runtime="wsl",
-    python="/home/your-user/venvs/chemistry/bin/python", distribution="Ubuntu",
+    atom="H 0 0 0; H 0 0 0.735", basis="sto3g", runtime="native",
 )
 integrals.save("h2.york")
 data = toolkit.integration("data")

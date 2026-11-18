@@ -46,6 +46,10 @@ def main():
     nature = toolkit.integration("nature")
     problem = nature.from_integrals(result)
     legacy = driver.run(**options)
+    worker_platform = result.metadata["provenance"]["worker_platform"]
+    expected_system = platform.system() if args.runtime == "native" else "Linux"
+    if worker_platform["system"] != expected_system or legacy["worker_platform"] != worker_platform:
+        raise AssertionError(f"Unexpected PySCF worker platform: {worker_platform}")
     with tempfile.TemporaryDirectory(prefix="york-h2-") as temporary:
         path = Path(temporary) / "h2.fcidump"
         path.write_text(legacy["fcidump"], encoding="utf-8")
@@ -102,6 +106,7 @@ def main():
     evidence = {
         "passed": True,
         "controller_system": platform.system(),
+        "worker_platform": worker_platform,
         "runtime": args.runtime,
         "pyscf_version": result.metadata["provenance"]["pyscf_version"],
         "array_transport": True,

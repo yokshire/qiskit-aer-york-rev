@@ -24,6 +24,12 @@ def _decode_output(data):
     return data.decode("utf-8", errors="replace")
 
 
+def _native_supported(system):
+    if system == "Windows":
+        return sys.maxsize > 2**32 and platform.machine().lower() in ("amd64", "x86_64")
+    return system in ("Linux", "Darwin")
+
+
 class PySCFDriver:
     api_version = 1
 
@@ -31,7 +37,7 @@ class PySCFDriver:
         """Runtime availability is separate from whether its worker has PySCF installed."""
         system = platform.system()
         return {
-            "native_supported": system in ("Linux", "Darwin"),
+            "native_supported": _native_supported(system),
             "wsl_available": system == "Windows" and shutil.which("wsl.exe") is not None,
             "format": "fcidump",
             "formats": ("fcidump", "integrals"),
@@ -55,8 +61,8 @@ class PySCFDriver:
     ):
         """Compute integrals; choose legacy FCIDump or a packed IntegralBundle.
 
-        Native Windows PySCF is unsupported. WSL requires an explicit Linux
-        Python executable and distribution, with PySCF already installed there.
+        Native mode uses the selected Python on Windows x64, Linux or macOS.
+        Optional WSL mode requires an explicit Linux Python and distribution.
         The entire molecular request travels as JSON stdin, never shell code.
         """
         if format not in ("fcidump", "integrals"):
@@ -97,10 +103,10 @@ class PySCFDriver:
             prefix += f"exec({wire!r}, york_wire.__dict__)\nsys.modules['york_wire'] = york_wire\n"
             source = prefix + source
         if runtime == "native":
-            if platform.system() not in ("Linux", "Darwin"):
+            if not _native_supported(platform.system()):
                 raise PluginError(
-                    "PySCF does not support native Windows. Choose runtime='wsl' with an "
-                    "explicit Linux Python/distribution, or use existing FCIDump data."
+                    "York's native PySCF driver requires Windows x64 with 64-bit Python, "
+                    "Linux or macOS. Existing FCIDump data can still be imported."
                 )
             if distribution is not None:
                 raise ValueError("distribution applies only to runtime='wsl'")
@@ -148,6 +154,11 @@ class PySCFDriver:
         if process.returncode:
             stdout, stderr = _decode_output(process.stdout), _decode_output(process.stderr)
             detail = stderr.strip()[-2000:] or stdout.strip()[-2000:]
+            if runtime == "native" and platform.system() == "Windows":
+                detail += (
+                    " Use an x64 Windows Python with the official PySCF 2.15.1+ "
+                    "Windows wheel installed; York will not switch to WSL."
+                )
             raise PluginError(f"PySCF {runtime} worker failed: {detail}")
         if format == "integrals":
             try:

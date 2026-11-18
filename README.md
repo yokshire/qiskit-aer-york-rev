@@ -45,8 +45,8 @@ are not yet individually distributed. Unsupported ideal-engine operations
 fail explicitly and do not select another engine automatically.
 
 Qiskit Nature data/mapping and PySCF calculation are separate optional plugins.
-Windows can use portable FCIDump integrals without a chemistry SDK, or explicitly
-run just the PySCF step in WSL while Nature and York stay native. See
+Windows x64 can run PySCF from its official wheel, map with Nature, and simulate
+locally without WSL. Existing FCIDump input needs no chemistry SDK. See
 [Nature/PySCF compatibility and installation](NATURE_COMPATIBILITY.md).
 
 The lightweight `Toolkit` facade connects these plugins. A separate data wheel

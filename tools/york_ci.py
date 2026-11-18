@@ -172,13 +172,18 @@ def make_report(directory, needs):
         passed = False
     nature_results = [json.loads(path.read_text(encoding="utf-8")) for path in nature_files]
     if (
-        len(nature_results) != 1
-        or nature_results[0].get("passed") is not True
-        or nature_results[0].get("runtime") != "native"
-        or nature_results[0].get("native_aer_installed") is not False
-        or nature_results[0].get("array_transport") is not True
-        or nature_results[0].get("binary_matches_fcidump") is not True
-        or nature_results[0].get("rohf_spin_verified") is not True
+        len(nature_results) != 2
+        or {result.get("controller_system") for result in nature_results} != {"Linux", "Windows"}
+        or any(
+            result.get("passed") is not True
+            or result.get("runtime") != "native"
+            or result.get("worker_platform", {}).get("system") != result.get("controller_system")
+            or result.get("native_aer_installed") is not False
+            or result.get("array_transport") is not True
+            or result.get("binary_matches_fcidump") is not True
+            or result.get("rohf_spin_verified") is not True
+            for result in nature_results
+        )
     ):
         passed = False
     for result in cpu_results:
@@ -266,7 +271,7 @@ def make_report(directory, needs):
         )
     for result in nature_results:
         lines.append(
-            f"- Native PySCF {result.get('pyscf_version')} H2 calculation and York CPU execution: passed={result.get('passed')}; energy error={result.get('error')}."
+            f"- {result.get('controller_system')} native PySCF {result.get('pyscf_version')} H2 calculation and York CPU execution: passed={result.get('passed')}; energy error={result.get('error')}."
         )
     for result in data_results:
         lines.append(

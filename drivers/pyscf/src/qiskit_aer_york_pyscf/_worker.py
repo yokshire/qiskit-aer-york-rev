@@ -5,6 +5,7 @@ import contextlib
 import json
 import math
 from pathlib import Path
+import platform
 import sys
 import tempfile
 
@@ -32,6 +33,7 @@ def calculate(request):
     source = molecule if solver._eri is None else solver._eri
     eri = ao2mo.restore(8, ao2mo.full(source, coefficients), n)
     nuclear = float(solver.energy_nuc())
+    worker_platform = {"system": platform.system(), "machine": platform.machine()}
     if output_format == "integrals":
         metadata = {
             "kind": "restricted-molecular-integrals",
@@ -47,6 +49,7 @@ def calculate(request):
                 "pyscf_version": pyscf.__version__,
                 "runtime": runtime,
                 "method": "ROHF" if request["spin"] else "RHF",
+                "worker_platform": worker_platform,
                 "input": request,
             },
         }
@@ -63,6 +66,7 @@ def calculate(request):
         "reference_energy": energy,
         "pyscf_version": pyscf.__version__,
         "method": "ROHF" if request["spin"] else "RHF",
+        "worker_platform": worker_platform,
         "input": request,
     }
 
