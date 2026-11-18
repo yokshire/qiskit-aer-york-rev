@@ -88,8 +88,15 @@ def check_wheel(wheel, gpu):
     names = {canonicalize_name(requirement.name) for requirement in requirements}
     if gpu and not CUDA_REQUIREMENTS.issubset(names):
         raise ValueError(f"Missing CUDA dependencies: {sorted(CUDA_REQUIREMENTS - names)}")
-    if not gpu and CUDA_REQUIREMENTS & names:
-        raise ValueError("CPU wheel unexpectedly requires CUDA packages")
+    accelerator_names = {
+        name
+        for name in names
+        if name.startswith(("nvidia-", "cuquantum", "custatevec", "cutensornet", "rocm-"))
+    }
+    if not gpu and accelerator_names:
+        raise ValueError(
+            f"CPU wheel unexpectedly requires accelerator packages: {sorted(accelerator_names)}"
+        )
     if "qiskit" not in names or "qiskit-aer" in names or "qiskit-aer-gpu" in names:
         raise ValueError("Incorrect Qiskit/Aer distribution dependencies")
     return {"name": metadata["Name"], "version": metadata["Version"], "cuda_dependencies": gpu}
@@ -108,7 +115,13 @@ def make_report(directory, needs):
         json.loads(inventory_file.read_text(encoding="utf-8")) if inventory_file.exists() else {}
     )
     checks = {name: detail.get("result", "unknown") for name, detail in needs.items()}
-    required_jobs = {"inventory", "static-review", "cpu-compatibility", "cuda-wheel"}
+    required_jobs = {
+        "inventory",
+        "static-review",
+        "cpu-compatibility",
+        "cpu-portability",
+        "cuda-wheel",
+    }
     passed = required_jobs.issubset(checks) and all(value == "success" for value in checks.values())
     smoke_results = [
         json.loads(path.read_text(encoding="utf-8"))
@@ -116,7 +129,13 @@ def make_report(directory, needs):
     ]
     cpu_results = [result for result in smoke_results if result.get("device") == "CPU"]
     gpu_metadata_files = list(directory.rglob("gpu-wheel.json"))
-    if not packages_complete(versions) or len(cpu_results) < 6 or len(gpu_metadata_files) != 1:
+    cpu_systems = {result.get("platform", {}).get("system") for result in cpu_results}
+    if (
+        not packages_complete(versions)
+        or len(cpu_results) < 8
+        or not {"Linux", "Windows", "Darwin"}.issubset(cpu_systems)
+        or len(gpu_metadata_files) != 1
+    ):
         passed = False
     for result in cpu_results:
         expected = versions.get("packages", {})
@@ -136,7 +155,15 @@ def make_report(directory, needs):
                 "smoke": [
                     {
                         key: result.get(key)
-                        for key in ("python", "status", "versions", "tests", "error")
+                        for key in (
+                            "python",
+                            "platform",
+                            "device",
+                            "status",
+                            "versions",
+                            "tests",
+                            "error",
+                        )
                     }
                     for result in smoke_results
                 ],
@@ -145,7 +172,9 @@ def make_report(directory, needs):
         ).encode()
     ).hexdigest()
     heading = (
-        "PASS — CPU compatibility and CUDA packaging checks" if passed else "FAIL — review required"
+        "PASS — general-purpose CPU compatibility, OS portability, and optional CUDA packaging"
+        if passed
+        else "FAIL — review required"
     )
     lines = [
         "# York compatibility review",
@@ -177,7 +206,8 @@ def make_report(directory, needs):
     lines += ["", "## Installed-wheel functional evidence", ""]
     for result in smoke_results:
         lines.append(
-            f"- Python {result.get('python', 'unknown')}: {result.get('status', 'unknown')}; "
+            f"- {result.get('platform', {}).get('system', 'unknown OS')} "
+            f"Python {result.get('python', 'unknown')}: {result.get('status', 'unknown')}; "
             f"{len(result.get('tests', []))} completed checks; device {result.get('device', 'unknown')}."
         )
         if result.get("error"):

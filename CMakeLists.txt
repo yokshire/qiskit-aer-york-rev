@@ -106,7 +106,8 @@ set(AER_COMPILER_DEFINITIONS "")
 
 # TODO: We may want to change the prefix path for all the environments
 if(WIN32)
-	set(CMAKE_PREFIX_PATH "${AER_SIMULATOR_CPP_EXTERNAL_LIBS} ${CMAKE_PREFIX_PATH}")
+	# York revision: preserve the CMake list populated by toolchains such as vcpkg.
+	list(APPEND CMAKE_PREFIX_PATH ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
 endif()
 
 # Adding support for CCache
@@ -189,8 +190,13 @@ endif ()
 
 if(NOT OPENMP_FOUND) # Could already be setup for macos with conan
 	message(STATUS "Looking for OpenMP support...")
-	find_package(OpenMP QUIET)
+	# York revision: the simulator uses C++ OpenMP; C support is not required.
+	find_package(OpenMP QUIET COMPONENTS CXX)
 	if(OPENMP_FOUND)
+		# York revision: retain the system OpenMP target's runtime-library linkage.
+		if(TARGET OpenMP::OpenMP_CXX)
+			list(APPEND AER_LIBRARIES OpenMP::OpenMP_CXX)
+		endif()
 		set(AER_COMPILER_FLAGS "${AER_COMPILER_FLAGS} ${OpenMP_CXX_FLAGS}")
 		set(AER_LINKER_FLAGS "${AER_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS} ${OpenMP_CXX_FLAGS}")
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
