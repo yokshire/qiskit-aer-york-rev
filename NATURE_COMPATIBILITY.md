@@ -116,6 +116,17 @@ python -I tools/york_nature_smoke.py --runtime wsl --python /absolute/linux/pyth
 python -I tools/york_nature_smoke.py --runtime native --output artifacts/nature-native.json
 ```
 
+To verify the Windows-to-WSL workflow with a local NVIDIA GPU, also install the
+optional CUDA engine (see [accelerator setup](accelerators/README.md)) and run:
+
+```text
+python -I tools/york_nature_smoke.py --runtime wsl --python /absolute/linux/python --distribution Ubuntu --engine cuda --output artifacts/nature-wsl-cuda.json
+```
+
+The check requires real GPU gate evolution on the Windows controller and fails
+if that device is unavailable. PySCF still computes the integrals in WSL; the
+observable evaluation and reference comparisons run on the CPU.
+
 The old `test/benchmark/vqe_application.py` and Linux ASV files contain historical
 Aqua/`qiskit.chemistry` benchmarks. Modular packages neither import nor install
 them. They remain for upstream provenance; use the current integration above.

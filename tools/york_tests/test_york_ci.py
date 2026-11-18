@@ -34,7 +34,7 @@ class YorkCITests(unittest.TestCase):
                 },
             )
         CI.write_json(path / "gpu-wheel.json", {"name": "qiskit-aer-york-rev-gpu"})
-        for label in ("ubuntu-24.04", "windows-2022", "macos-14"):
+        for label in ("ubuntu-24.04", "windows-2022", "macos-15"):
             CI.write_json(
                 path / f"modular-{label}.json",
                 {

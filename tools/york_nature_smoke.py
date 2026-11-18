@@ -21,6 +21,12 @@ def main():
     parser.add_argument("--runtime", required=True, choices=("native", "wsl"))
     parser.add_argument("--python", help="Explicit worker Python executable")
     parser.add_argument("--distribution", help="Explicit WSL distribution")
+    parser.add_argument(
+        "--engine",
+        choices=("statevector", "cuda"),
+        default="statevector",
+        help="Local H2 simulator; selecting cuda requires physical GPU execution",
+    )
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     if importlib.util.find_spec("qiskit_aer") is not None:
@@ -73,7 +79,18 @@ def main():
     expected = Statevector.from_instruction(circuit)
     circuit = circuit.decompose()
     save_statevector(circuit)
-    execution = toolkit.simulator("statevector").run(circuit).result()
+    execution = toolkit.simulator(args.engine, precision="double").run(circuit).result()
+    execution_metadata = execution.results[0].metadata
+    expected_device = "GPU" if args.engine == "cuda" else "CPU"
+    if (
+        execution_metadata.get("engine") != args.engine
+        or execution_metadata.get("device") != expected_device
+        or execution_metadata.get("platform_system") != platform.system()
+        or execution_metadata.get("gate_count", 0) <= 0
+    ):
+        raise AssertionError(
+            f"Missing local {args.engine} execution evidence: {execution_metadata}"
+        )
     vector = execution.get_statevector()
     nuclear = float(problem.hamiltonian.nuclear_repulsion_energy)
     energy = float(vector.expectation_value(operator).real) + nuclear
@@ -97,7 +114,7 @@ def main():
         "reference_energy": reference,
         "simulated_energy": energy,
         "error": abs(energy - reference),
-        "execution": execution.results[0].metadata,
+        "execution": execution_metadata,
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(evidence, indent=2) + "\n", encoding="utf-8")

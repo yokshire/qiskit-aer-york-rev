@@ -146,7 +146,7 @@ def make_report(directory, needs):
     if {result.get("label") for result in modular_results} != {
         "ubuntu-24.04",
         "windows-2022",
-        "macos-14",
+        "macos-15",
     } or any(
         result.get("passed") is not True
         or result.get("core_dependencies") != []
