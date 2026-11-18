@@ -111,7 +111,10 @@ jobs:
         with:
           python-version: '3.12'
       - name: Explicitly install the optional Nature and PySCF paths
-        run: python -m pip install --only-binary=:all: ./core ./data ./integrations/qiskit ./integrations/nature ./engines/statevector './drivers/pyscf[native]' "qiskit==${{ needs.inventory.outputs.qiskit }}"
+        run: >-
+          python -m pip install --only-binary=:all:
+          ./core ./data ./integrations/qiskit ./integrations/nature ./engines/statevector
+          './drivers/pyscf[native]' "qiskit==${{ needs.inventory.outputs.qiskit }}"
       - run: python -m pip check
       - name: Compute real H2 integrals, map locally and execute without native Aer
         run: python -I tools/york_nature_smoke.py --runtime native --output artifacts/nature-native.json
